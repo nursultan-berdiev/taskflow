@@ -4,9 +4,7 @@
     "source.fixAll.eslint": "explicit"
   },
   "typescript.tsdk": "node_modules/typescript/lib",
-  "eslint.validate": [
-    "typescript"
-  ],
+  "eslint.validate": ["typescript"],
   "files.exclude": {
     "out": false,
     "node_modules": true
@@ -14,5 +12,66 @@
   "search.exclude": {
     "out": true,
     "node_modules": true
+  },
+  // Автоматическое применение команд в терминале
+  "chat.tools.terminal.autoApprove": {
+    // === БЛОКИРОВАТЬ (требуется подтверждение) ===
+    "sudo": false,
+    "git push origin master": false,
+    "git push origin main": false,
+    "/^rm -rf \\//": false,
+
+    // === РАЗРЕШИТЬ ВСЕ ОСТАЛЬНОЕ ===
+    "/.*/": true,
+
+    // === DJANGO ПРОЕКТ (явно разрешены) ===
+    "python": true,
+    "python3": true,
+    "source venv/bin/activate": true,
+
+    // Django management команды
+    "python manage.py": true,
+    "./manage.py": true,
+    "python manage.py migrate": true,
+    "python manage.py makemigrations": true,
+    "python manage.py runserver": true,
+    "python manage.py shell": true,
+    "python manage.py collectstatic": true,
+
+    // Docker для проекта
+    "docker-compose": true,
+    "docker-compose up": true,
+    "docker-compose down": true,
+    "docker exec": true,
+
+    // Git (безопасные операции)
+    "git add": true,
+    "git commit": true,
+    "git status": true,
+    "git diff": true,
+    "git log": true,
+    "git pull": true,
+    "git push origin develop": true,
+    "git push origin dev": true,
+    "git push origin staging": true,
+
+    // Тестирование
+    "pytest": true,
+    "coverage": true,
+    "python -m pytest": true,
+
+    // Celery
+    "celery": true,
+    "celery -A blink_django worker": true,
+
+    // Зависимости
+    "pip install": true,
+    "poetry install": true,
+    "poetry add": true,
+
+    // Make команды проекта
+    "make": true,
+    "make test": true,
+    "make migrate": true
   }
 }

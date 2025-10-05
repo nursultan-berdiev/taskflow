@@ -107,6 +107,7 @@ export class MarkdownParser {
     let dueDate: Date | undefined;
     let assignee: string | undefined;
     let queuePosition: number | undefined;
+    let executionDuration: number | undefined;
 
     // Извлечение приоритета
     const priorityMatch = content.match(/\[(Высокий|Средний|Низкий)\]/i);
@@ -120,6 +121,13 @@ export class MarkdownParser {
     if (dueDateMatch) {
       dueDate = new Date(dueDateMatch[1]);
       title = title.replace(/Срок:\s*\d{4}-\d{2}-\d{2}/, "").trim();
+    }
+
+    // Извлечение времени выполнения (формат: Время: 45мин или Время: 45)
+    const durationMatch = content.match(/Время:\s*(\d+)(?:мин)?/i);
+    if (durationMatch) {
+      executionDuration = parseInt(durationMatch[1], 10);
+      title = title.replace(/Время:\s*\d+(?:мин)?/i, "").trim();
     }
 
     // Извлечение исполнителя
@@ -146,6 +154,7 @@ export class MarkdownParser {
       dueDate,
       assignee,
       queuePosition,
+      executionDuration,
       createdAt: now,
       updatedAt: now,
       subtasks: [],
@@ -207,6 +216,10 @@ export class MarkdownParser {
       if (task.dueDate) {
         const dateStr = task.dueDate.toISOString().split("T")[0];
         taskLine += ` Срок: ${dateStr}`;
+      }
+
+      if (task.executionDuration) {
+        taskLine += ` Время: ${task.executionDuration}мин`;
       }
 
       if (task.assignee) {

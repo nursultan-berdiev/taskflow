@@ -41,7 +41,7 @@ export class TaskManager {
 
     const tasksFileName = vscode.workspace
       .getConfiguration("taskflow")
-      .get<string>("tasksFile", ".github/task_flow_tasks.md");
+      .get<string>("tasksFile", ".github/.task_flow/tasks.md");
 
     // Пути к файлам
     const workspacePath = workspaceFolders[0].uri.fsPath;
@@ -71,14 +71,14 @@ export class TaskManager {
 
     const tasksFileName = vscode.workspace
       .getConfiguration("taskflow")
-      .get<string>("tasksFile", ".github/task_flow_tasks.md");
+      .get<string>("tasksFile", ".github/.task_flow/tasks.md");
     const tasksFilePath = path.join(
       workspaceFolders[0].uri.fsPath,
       tasksFileName
     );
     const uri = vscode.Uri.file(tasksFilePath);
 
-    // Создание папки .github если её нет
+    // Создание папки .github/.task_flow если её нет
     const dirPath = path.dirname(tasksFilePath);
     const dirUri = vscode.Uri.file(dirPath);
 
@@ -474,22 +474,59 @@ export class TaskManager {
       return;
     }
 
-    // Найти максимальную позицию в очереди
-    const queuedTasks = this.getQueuedTasks();
-    const maxPosition =
-      queuedTasks.length > 0
-        ? Math.max(...queuedTasks.map((t) => t.queuePosition || 0))
-        : 0;
-
+    // Добавляем задачу в очередь с временной позицией
     const updatedTask: Task = {
       ...task,
-      queuePosition: maxPosition + 1,
+      queuePosition: 0, // Временное значение, будет пересчитано
       updatedAt: new Date(),
     };
 
     this.tasks.set(taskId, updatedTask);
+
+    // Пересортировываем всю очередь по приоритету
+    await this.reorderQueueByPriority();
+
     await this.saveTasks();
     this._onTasksChanged.fire(Array.from(this.tasks.values()));
+  }
+
+  /**
+   * Пересортировка очереди по приоритету
+   * Порядок: Высокий -> Средний -> Низкий
+   * При одинаковом приоритете сохраняется текущий порядок
+   */
+  private async reorderQueueByPriority(): Promise<void> {
+    const queuedTasks = Array.from(this.tasks.values()).filter(
+      (task) => task.queuePosition !== undefined && task.queuePosition !== null
+    );
+
+    // Сортируем по приоритету (Высокий = 0, Средний = 1, Низкий = 2)
+    // При одинаковом приоритете сохраняем текущий порядок (стабильная сортировка)
+    const priorityOrder = {
+      [Priority.High]: 0,
+      [Priority.Medium]: 1,
+      [Priority.Low]: 2,
+    };
+
+    queuedTasks.sort((a, b) => {
+      const priorityDiff =
+        priorityOrder[a.priority] - priorityOrder[b.priority];
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      // При одинаковом приоритете сохраняем старый порядок
+      return (a.queuePosition || 0) - (b.queuePosition || 0);
+    });
+
+    // Переназначаем позиции в очереди
+    queuedTasks.forEach((task, index) => {
+      const updatedTask: Task = {
+        ...task,
+        queuePosition: index + 1,
+        updatedAt: new Date(),
+      };
+      this.tasks.set(task.id, updatedTask);
+    });
   }
 
   /**

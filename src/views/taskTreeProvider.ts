@@ -158,10 +158,12 @@ export class CategoryTreeItem extends vscode.TreeItem {
 }
 
 /**
- * Провайдер данных для TreeView задач
+ * Провайдер данных для TreeView задач с поддержкой Drag & Drop
  */
 export class TaskTreeProvider
-  implements vscode.TreeDataProvider<TaskTreeItem | CategoryTreeItem>
+  implements
+    vscode.TreeDataProvider<TaskTreeItem | CategoryTreeItem>,
+    vscode.TreeDragAndDropController<TaskTreeItem | CategoryTreeItem>
 {
   private _onDidChangeTreeData = new vscode.EventEmitter<
     TaskTreeItem | CategoryTreeItem | undefined | null | void
@@ -172,11 +174,49 @@ export class TaskTreeProvider
   private filterStatus: TaskStatus | null = null;
   private filterPriority: Priority | null = null;
 
+  // Настройка Drag & Drop
+  dropMimeTypes = ["application/vnd.code.tree.taskflow"];
+  dragMimeTypes = ["application/vnd.code.tree.taskflow"];
+
   constructor(private taskManager: TaskManager) {
     // Подписка на изменения задач
     taskManager.onTasksChanged(() => {
       this.refresh();
     });
+  }
+
+  /**
+   * Обработка начала перетаскивания
+   */
+  public async handleDrag(
+    source: readonly (TaskTreeItem | CategoryTreeItem)[],
+    dataTransfer: vscode.DataTransfer,
+    token: vscode.CancellationToken
+  ): Promise<void> {
+    // Разрешаем перетаскивать только задачи, не категории
+    const tasks = source.filter(
+      (item): item is TaskTreeItem => item instanceof TaskTreeItem
+    );
+
+    if (tasks.length > 0) {
+      // Сохраняем ID задач для передачи
+      const taskIds = tasks.map((item) => item.task.id);
+      dataTransfer.set(
+        "application/vnd.code.tree.taskflow",
+        new vscode.DataTransferItem(taskIds)
+      );
+    }
+  }
+
+  /**
+   * Обработка drop (не используется для перетаскивания между панелями)
+   */
+  public async handleDrop(
+    target: TaskTreeItem | CategoryTreeItem | undefined,
+    dataTransfer: vscode.DataTransfer,
+    token: vscode.CancellationToken
+  ): Promise<void> {
+    // Drop в той же панели не нужен, но метод обязателен
   }
 
   /**

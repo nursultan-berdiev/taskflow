@@ -1,9 +1,19 @@
 {
   "name": "taskflow",
   "displayName": "TaskFlow - AI-Powered Task Management",
-  "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода",
-  "version": "2.0.1",
-  "publisher": "taskflow",
+  "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода с кастомными инструкциями",
+  "version": "2.9.0",
+  "publisher": "nursultanberdiev",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nursultan-berdiev/taskflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nursultan-berdiev/taskflow/issues"
+  },
+  "homepage": "https://github.com/nursultan-berdiev/taskflow#readme",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -120,6 +130,53 @@
         "title": "Запустить автоматическое выполнение очереди",
         "category": "TaskFlow",
         "icon": "$(run-all)"
+      },
+      {
+        "command": "taskflow.executeTaskWithCopilot",
+        "title": "Выполнить задачу с Copilot",
+        "category": "TaskFlow",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "taskflow.importTasksFromApi",
+        "title": "Импортировать задачи из API",
+        "category": "TaskFlow",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "taskflow.createInstruction",
+        "title": "Создать новую инструкцию",
+        "category": "TaskFlow",
+        "icon": "$(add)"
+      },
+      {
+        "command": "taskflow.viewInstruction",
+        "title": "Просмотр инструкции",
+        "category": "TaskFlow"
+      },
+      {
+        "command": "taskflow.editInstruction",
+        "title": "Редактировать инструкцию",
+        "category": "TaskFlow",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "taskflow.deleteInstruction",
+        "title": "Удалить инструкцию",
+        "category": "TaskFlow",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "taskflow.assignInstructionToTask",
+        "title": "Назначить инструкцию задаче",
+        "category": "TaskFlow",
+        "icon": "$(link)"
+      },
+      {
+        "command": "taskflow.refreshInstructions",
+        "title": "Обновить инструкции",
+        "category": "TaskFlow",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -151,6 +208,11 @@
         {
           "id": "taskflow.categoriesView",
           "name": "Категории",
+          "icon": "resources/taskflow-icon.svg"
+        },
+        {
+          "id": "taskflow.instructionsView",
+          "name": "Инструкции",
           "icon": "resources/taskflow-icon.svg"
         }
       ]
@@ -186,9 +248,34 @@
           "command": "taskflow.refreshTasks",
           "when": "view == taskflow.completedTasksView",
           "group": "navigation"
+        },
+        {
+          "command": "taskflow.createInstruction",
+          "when": "view == taskflow.instructionsView",
+          "group": "navigation"
+        },
+        {
+          "command": "taskflow.refreshInstructions",
+          "when": "view == taskflow.instructionsView",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
+        {
+          "command": "taskflow.executeTaskWithCopilot",
+          "when": "view == taskflow.queueView && viewItem == task",
+          "group": "inline@1"
+        },
+        {
+          "command": "taskflow.removeFromQueue",
+          "when": "view == taskflow.queueView && viewItem == task",
+          "group": "inline@2"
+        },
+        {
+          "command": "taskflow.removeFromQueue",
+          "when": "view == taskflow.queueView && viewItem == task",
+          "group": "queue@1"
+        },
         {
           "command": "taskflow.editTask",
           "when": "view == taskflow.tasksView && viewItem == task",
@@ -228,6 +315,21 @@
           "command": "taskflow.completeAndStartNext",
           "when": "view == taskflow.tasksView && viewItem == task",
           "group": "queue@4"
+        },
+        {
+          "command": "taskflow.assignInstructionToTask",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "instruction@1"
+        },
+        {
+          "command": "taskflow.editInstruction",
+          "when": "view == taskflow.instructionsView && viewItem == instruction",
+          "group": "inline@1"
+        },
+        {
+          "command": "taskflow.deleteInstruction",
+          "when": "view == taskflow.instructionsView && viewItem == instruction",
+          "group": "actions@1"
         }
       ],
       "commandPalette": [
@@ -242,6 +344,22 @@
         {
           "command": "taskflow.toggleTask",
           "when": "false"
+        },
+        {
+          "command": "taskflow.viewInstruction",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.editInstruction",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.deleteInstruction",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.assignInstructionToTask",
+          "when": "false"
         }
       ]
     },
@@ -250,7 +368,7 @@
       "properties": {
         "taskflow.tasksFile": {
           "type": "string",
-          "default": ".github/task_flow_tasks.md",
+          "default": ".github/.task_flow/tasks.md",
           "description": "Путь к файлу для хранения задач (относительно корня workspace)"
         },
         "taskflow.autoSave": {
@@ -277,6 +395,31 @@
           "type": "boolean",
           "default": true,
           "description": "Включить интеграцию с GitHub Copilot"
+        },
+        "taskflow.queueExecutionMode": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "automatic"
+          ],
+          "default": "manual",
+          "enumDescriptions": [
+            "Ручной режим: ожидание подтверждения пользователя после каждой задачи",
+            "Автоматический режим: задачи завершаются автоматически после истечения времени"
+          ],
+          "description": "Режим выполнения задач в очереди"
+        },
+        "taskflow.defaultTaskDuration": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 480,
+          "description": "Время выполнения задачи по умолчанию в автоматическом режиме (в минутах)"
+        },
+        "taskflow.apiTasksUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL для импорта задач через API (HTTP GET). AI агент автоматически создаст задачи из полученных данных."
         }
       }
     }
