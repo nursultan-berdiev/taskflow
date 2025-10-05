@@ -120,6 +120,12 @@
         "title": "Запустить автоматическое выполнение очереди",
         "category": "TaskFlow",
         "icon": "$(run-all)"
+      },
+      {
+        "command": "taskflow.executeTaskWithCopilot",
+        "title": "Выполнить задачу с Copilot",
+        "category": "TaskFlow",
+        "icon": "$(sparkle)"
       }
     ],
     "viewsContainers": {
@@ -189,6 +195,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "taskflow.executeTaskWithCopilot",
+          "when": "view == taskflow.queueView && viewItem == task",
+          "group": "inline@1"
+        },
         {
           "command": "taskflow.editTask",
           "when": "view == taskflow.tasksView && viewItem == task",

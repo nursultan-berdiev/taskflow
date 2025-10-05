@@ -356,6 +356,44 @@ function registerCommands(
     )
   );
 
+  // Выполнить задачу с Copilot (из очереди)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "taskflow.executeTaskWithCopilot",
+      async (item) => {
+        if (item && item.task) {
+          try {
+            const task = item.task;
+            const taskId = task.id;
+            const taskTitle = task.title;
+
+            // Запустить генерацию кода через Copilot
+            const shouldComplete = await copilotIntegration.generateCodeForTask(
+              task
+            );
+
+            // Если пользователь подтвердил завершение, отметить задачу как выполненную
+            if (shouldComplete) {
+              // Получаем свежий объект задачи
+              const currentTask = taskManager.getTaskById(taskId);
+              if (currentTask) {
+                await taskManager.updateTask(taskId, {
+                  ...currentTask,
+                  status: TaskStatus.Completed,
+                });
+                vscode.window.showInformationMessage(
+                  `Задача "${taskTitle}" выполнена с помощью Copilot`
+                );
+              }
+            }
+          } catch (error: any) {
+            vscode.window.showErrorMessage(error.message);
+          }
+        }
+      }
+    )
+  );
+
   // Показать очередь задач
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.showQueue", async () => {
