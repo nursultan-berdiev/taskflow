@@ -69,9 +69,7 @@ export class InstructionTreeProvider
   /**
    * Получение дочерних элементов
    */
-  getChildren(
-    element?: InstructionTreeItem
-  ): Thenable<InstructionTreeItem[]> {
+  getChildren(element?: InstructionTreeItem): Thenable<InstructionTreeItem[]> {
     if (!element) {
       // Корневые элементы - все инструкции
       const instructions = this.instructionManager.getAllInstructions();

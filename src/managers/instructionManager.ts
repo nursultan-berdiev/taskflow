@@ -12,8 +12,9 @@ export class InstructionManager {
   private instructionsDir: string | undefined;
   private fileWatcher: vscode.FileSystemWatcher | undefined;
 
-  private readonly _onInstructionsChanged =
-    new vscode.EventEmitter<Instruction[]>();
+  private readonly _onInstructionsChanged = new vscode.EventEmitter<
+    Instruction[]
+  >();
   public readonly onInstructionsChanged = this._onInstructionsChanged.event;
 
   constructor(private context: vscode.ExtensionContext) {}
@@ -145,10 +146,7 @@ export class InstructionManager {
       return;
     }
 
-    const pattern = new vscode.RelativePattern(
-      this.instructionsDir,
-      "**/*.md"
-    );
+    const pattern = new vscode.RelativePattern(this.instructionsDir, "**/*.md");
     this.fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
 
     this.fileWatcher.onDidCreate(() => this.loadInstructions());

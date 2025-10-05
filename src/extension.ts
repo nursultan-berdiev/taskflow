@@ -65,10 +65,19 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // Инициализация интеграции с Copilot
-  const copilotIntegration = new CopilotIntegration(context, instructionManager);
+  const copilotIntegration = new CopilotIntegration(
+    context,
+    instructionManager
+  );
 
   // Регистрация команд
-  registerCommands(context, taskManager, instructionManager, taskTreeProvider, copilotIntegration);
+  registerCommands(
+    context,
+    taskManager,
+    instructionManager,
+    taskTreeProvider,
+    copilotIntegration
+  );
 
   // Добавление в подписки для очистки
   context.subscriptions.push(
@@ -610,8 +619,7 @@ function registerCommands(
           return;
         }
 
-        const instructionData =
-          instruction.instruction || instruction;
+        const instructionData = instruction.instruction || instruction;
 
         const panel = vscode.window.createWebviewPanel(
           "instructionView",
@@ -1253,12 +1261,16 @@ function getInstructionWebviewContent(instruction: any): string {
         <p>ID: <code>${instruction.id}</code></p>
         ${
           instruction.createdAt
-            ? `<p>Создано: ${new Date(instruction.createdAt).toLocaleString("ru-RU")}</p>`
+            ? `<p>Создано: ${new Date(instruction.createdAt).toLocaleString(
+                "ru-RU"
+              )}</p>`
             : ""
         }
         ${
           instruction.updatedAt
-            ? `<p>Обновлено: ${new Date(instruction.updatedAt).toLocaleString("ru-RU")}</p>`
+            ? `<p>Обновлено: ${new Date(instruction.updatedAt).toLocaleString(
+                "ru-RU"
+              )}</p>`
             : ""
         }
     </div>

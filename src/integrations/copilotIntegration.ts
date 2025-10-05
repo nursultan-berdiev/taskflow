@@ -160,7 +160,7 @@ export class CopilotIntegration {
 
     // Добавление кастомной инструкции или инструкции по умолчанию
     prompt += `\n## Инструкции\n`;
-    
+
     const instruction = task.instructionId
       ? this.instructionManager.getInstruction(task.instructionId)
       : this.instructionManager.getDefaultInstruction();

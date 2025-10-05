@@ -5,12 +5,14 @@
 ## Как использовать
 
 ### Вариант 1: Копирование в проект
+
 ```bash
 # Скопируйте нужные инструкции в ваш проект
 cp examples/instructions/*.md .github/.task_flow/.instructions/
 ```
 
 ### Вариант 2: Через UI
+
 1. Откройте раздел "Инструкции" в TaskFlow
 2. Нажмите "+" для создания новой инструкции
 3. Скопируйте содержимое из примера
@@ -19,9 +21,11 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 ## Доступные примеры
 
 ### 1. REST API разработка (`rest_api.md`)
+
 **Для чего**: Создание RESTful API endpoints
 
 **Включает**:
+
 - Express.js conventions
 - Валидация и безопасность
 - Обработка ошибок с правильными HTTP кодами
@@ -30,14 +34,17 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 - Документация и тестирование
 
 **Используйте для задач**:
+
 - "Создать endpoint /api/users"
 - "Добавить authentication middleware"
 - "Реализовать CRUD для продуктов"
 
 ### 2. React компоненты (`react_component.md`)
+
 **Для чего**: Создание React компонентов с TypeScript
 
 **Включает**:
+
 - Функциональные компоненты с Hooks
 - TypeScript типизация
 - Styled Components или CSS Modules
@@ -46,14 +53,17 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 - Тестирование
 
 **Используйте для задач**:
+
 - "Создать компонент UserCard"
 - "Реализовать форму с валидацией"
 - "Добавить модальное окно"
 
 ### 3. Unit тесты (`unit_tests.md`)
+
 **Для чего**: Написание качественных unit-тестов
 
 **Включает**:
+
 - Jest и Testing Library
 - AAA Pattern (Arrange-Act-Assert)
 - Mocking и fixtures
@@ -62,6 +72,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 - Coverage guidelines
 
 **Используйте для задач**:
+
 - "Написать тесты для AuthService"
 - "Добавить тесты для компонента Button"
 - "Создать integration тесты"
@@ -69,33 +80,40 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 ## Создание собственных инструкций
 
 ### Формат файла
+
 ```markdown
 # Название инструкции
+
 > Краткое описание
 
 Основное содержимое инструкции для Copilot.
 
 ## Раздел 1
+
 Детали...
 
 ## Раздел 2
+
 Детали...
 ```
 
 ### Советы по созданию
 
 1. **Будьте конкретны**
+
    - Укажите конкретные технологии и инструменты
    - Приведите примеры кода
    - Определите структуру файлов
 
 2. **Добавьте правила**
+
    - Naming conventions
    - Code style
    - Best practices
    - Что делать и чего избегать
 
 3. **Включите требования**
+
    - Обработка ошибок
    - Логирование
    - Тестирование
@@ -109,6 +127,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 ## Популярные инструкции
 
 ### Backend
+
 - ✅ REST API (есть в примерах)
 - GraphQL API
 - Database migrations
@@ -116,6 +135,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 - WebSocket servers
 
 ### Frontend
+
 - ✅ React components (есть в примерах)
 - Vue components
 - Angular components
@@ -123,6 +143,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 - Form validation
 
 ### Testing
+
 - ✅ Unit tests (есть в примерах)
 - Integration tests
 - E2E tests
@@ -130,6 +151,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 - Security tests
 
 ### DevOps
+
 - Docker containers
 - CI/CD pipelines
 - Infrastructure as Code
@@ -137,6 +159,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 - Monitoring setup
 
 ### Documentation
+
 - API documentation
 - README files
 - Architecture diagrams
@@ -146,6 +169,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 ## Организация инструкций
 
 ### По технологии
+
 ```
 .instructions/
   backend/
@@ -160,6 +184,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 ```
 
 ### По типу задачи
+
 ```
 .instructions/
   create/
@@ -176,6 +201,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 ## Best Practices
 
 ### DO ✅
+
 - Создавайте инструкции для часто повторяющихся задач
 - Обновляйте инструкции когда меняются стандарты команды
 - Версионируйте инструкции в Git
@@ -183,6 +209,7 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 - Делитесь инструкциями с командой
 
 ### DON'T ❌
+
 - Не создавайте слишком общие инструкции
 - Не дублируйте информацию между инструкциями
 - Не забывайте обновлять устаревшие инструкции
@@ -193,38 +220,48 @@ cp examples/instructions/*.md .github/.task_flow/.instructions/
 
 ```markdown
 # [Название инструкции]
+
 > [Краткое описание - одна строка]
 
 [Вступление - для чего эта инструкция]
 
 ## Технологии
+
 - [Список используемых технологий]
 
 ## Требования
+
 - [Что должно быть реализовано]
 
 ## Структура
+
 [Структура кода/файлов]
 
 ## Правила
+
 [Conventions и best practices]
 
 ## Примеры
+
 [Примеры кода]
 
 ## Избегай
+
 [Что НЕ нужно делать]
 
 ## Тестирование
+
 [Как тестировать]
 
 ## Документация
+
 [Какая документация нужна]
 ```
 
 ## Вклад
 
 Если вы создали полезную инструкцию, которая может помочь другим:
+
 1. Отправьте Pull Request с новой инструкцией
 2. Добавьте описание в этот README
 3. Приведите примеры использования
