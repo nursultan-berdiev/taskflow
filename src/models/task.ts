@@ -42,6 +42,7 @@ export interface Task {
   assignee?: string;
   queuePosition?: number; // Позиция в очереди выполнения (null если не в очереди)
   instructionId?: string; // ID кастомной инструкции для Copilot (если не указано - используется по умолчанию)
+  executionDuration?: number; // Время выполнения задачи в минутах (опционально, если не указано - используется defaultTaskDuration)
 }
 
 /**

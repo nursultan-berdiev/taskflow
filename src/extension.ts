@@ -5,8 +5,10 @@ import { TaskTreeProvider } from "./views/taskTreeProvider";
 import { QueueTreeProvider } from "./views/queueTreeProvider";
 import { CompletedTasksTreeProvider } from "./views/completedTasksTreeProvider";
 import { InstructionTreeProvider } from "./views/instructionTreeProvider";
+import { TaskEditorPanel } from "./views/taskEditorPanel";
 import { CopilotIntegration } from "./integrations/copilotIntegration";
 import { Task, Priority, TaskStatus } from "./models/task";
+import { ApiTaskImporter } from "./services/apiTaskImporter";
 
 /**
  * Активация расширения
@@ -25,23 +27,25 @@ export function activate(context: vscode.ExtensionContext) {
     instructionManager.initialize();
     console.log("InstructionManager инициализирован");
 
-    // Инициализация провайдера TreeView для задач
+    // Инициализация провайдера TreeView для задач с поддержкой Drag & Drop
     console.log("Создание TaskTreeProvider...");
     const taskTreeProvider = new TaskTreeProvider(taskManager);
     const tasksView = vscode.window.createTreeView("taskflow.tasksView", {
       treeDataProvider: taskTreeProvider,
       showCollapseAll: true,
       canSelectMany: false,
+      dragAndDropController: taskTreeProvider,
     });
     console.log("TaskTreeProvider создан");
 
-    // Инициализация провайдера TreeView для очереди
+    // Инициализация провайдера TreeView для очереди с поддержкой Drag & Drop
     console.log("Создание QueueTreeProvider...");
     const queueTreeProvider = new QueueTreeProvider(taskManager);
     const queueView = vscode.window.createTreeView("taskflow.queueView", {
       treeDataProvider: queueTreeProvider,
       showCollapseAll: true,
       canSelectMany: false,
+      dragAndDropController: queueTreeProvider,
     });
     console.log("QueueTreeProvider создан");
 
@@ -140,7 +144,11 @@ function registerCommands(
   // Добавление новой задачи
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.addTask", async () => {
-      await showAddTaskDialog(taskManager, instructionManager);
+      await showAddTaskDialog(
+        taskManager,
+        instructionManager,
+        copilotIntegration
+      );
     })
   );
 
@@ -148,7 +156,12 @@ function registerCommands(
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.editTask", async (item) => {
       if (item && item.task) {
-        await showEditTaskDialog(taskManager, item.task);
+        TaskEditorPanel.createOrShow(
+          context.extensionUri,
+          taskManager,
+          instructionManager,
+          item.task
+        );
       }
     })
   );
@@ -426,6 +439,14 @@ function registerCommands(
     )
   );
 
+  // Импортировать задачи из API
+  context.subscriptions.push(
+    vscode.commands.registerCommand("taskflow.importTasksFromApi", async () => {
+      const apiTaskImporter = new ApiTaskImporter(taskManager);
+      await apiTaskImporter.importTasksFromApi();
+    })
+  );
+
   // Показать очередь задач
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.showQueue", async () => {
@@ -575,7 +596,12 @@ function registerCommands(
     vscode.commands.registerCommand(
       "taskflow.showTaskDetails",
       async (task: Task) => {
-        await showTaskDetailsPanel(task, taskManager);
+        TaskEditorPanel.createOrShow(
+          context.extensionUri,
+          taskManager,
+          instructionManager,
+          task
+        );
       }
     )
   );
@@ -797,26 +823,93 @@ function registerCommands(
  */
 async function showAddTaskDialog(
   taskManager: TaskManager,
-  instructionManager: InstructionManager
+  instructionManager: InstructionManager,
+  copilotIntegration: CopilotIntegration
 ): Promise<void> {
   // Название задачи
-  const title = await vscode.window.showInputBox({
-    prompt: "Введите название задачи",
-    placeHolder: "Например: Реализовать API авторизации",
+  const titleInput = await vscode.window.showInputBox({
+    prompt: "Введите название задачи (используйте /ai для генерации через AI)",
+    placeHolder:
+      "Например: Реализовать API авторизации или /ai создать REST API",
     validateInput: (value) => {
       return value.trim() ? null : "Название задачи не может быть пустым";
     },
   });
 
-  if (!title) {
+  if (!titleInput) {
     return;
   }
 
-  // Описание задачи
-  const description = await vscode.window.showInputBox({
-    prompt: "Введите описание задачи (необязательно)",
-    placeHolder: "Подробное описание задачи",
-  });
+  let title = titleInput;
+  let description: string | undefined;
+
+  // Проверка на использование AI агента
+  if (titleInput.trim().startsWith("/ai")) {
+    // Убираем префикс /ai
+    const briefTitle = titleInput.trim().substring(3).trim();
+
+    if (!briefTitle) {
+      vscode.window.showWarningMessage(
+        "Укажите краткое описание задачи после /ai"
+      );
+      return;
+    }
+
+    // Используем CopilotIntegration для генерации
+    const aiGenerated = await copilotIntegration.generateTaskDescription(
+      briefTitle
+    );
+
+    if (aiGenerated) {
+      title = aiGenerated.title;
+      description = aiGenerated.description;
+
+      // Показываем что было сгенерировано
+      const confirm = await vscode.window.showInformationMessage(
+        `🤖 AI сгенерировал:\n\nНазвание: ${title}\n\nОписание: ${description}\n\nПродолжить создание задачи?`,
+        { modal: true },
+        "✅ Да",
+        "✏️ Редактировать",
+        "❌ Отмена"
+      );
+
+      if (confirm === "❌ Отмена" || !confirm) {
+        return;
+      }
+
+      if (confirm === "✏️ Редактировать") {
+        // Даем возможность отредактировать
+        const editedTitle = await vscode.window.showInputBox({
+          prompt: "Отредактируйте название задачи",
+          value: title,
+          validateInput: (value) => {
+            return value.trim() ? null : "Название задачи не может быть пустым";
+          },
+        });
+
+        if (!editedTitle) {
+          return;
+        }
+        title = editedTitle;
+
+        const editedDescription = await vscode.window.showInputBox({
+          prompt: "Отредактируйте описание задачи",
+          value: description,
+        });
+
+        description = editedDescription || description;
+      }
+    } else {
+      // AI не сгенерировал или пользователь отменил
+      return;
+    }
+  } else {
+    // Обычный режим - запрашиваем описание
+    description = await vscode.window.showInputBox({
+      prompt: "Введите описание задачи (необязательно)",
+      placeHolder: "Подробное описание задачи",
+    });
+  }
 
   // Категория
   const categories = taskManager.getCategories();
@@ -889,6 +982,29 @@ async function showAddTaskDialog(
       ? selectedInstruction.value
       : undefined;
 
+  // Время выполнения задачи
+  const executionDurationStr = await vscode.window.showInputBox({
+    prompt: "Введите время выполнения в минутах (необязательно)",
+    placeHolder: "30 (оставьте пустым для значения по умолчанию)",
+    validateInput: (value) => {
+      if (!value) {
+        return null; // Пустое значение допустимо
+      }
+      const num = parseInt(value, 10);
+      if (isNaN(num) || num < 1) {
+        return "Введите положительное число";
+      }
+      if (num > 480) {
+        return "Максимальное время: 480 минут (8 часов)";
+      }
+      return null;
+    },
+  });
+
+  const executionDuration = executionDurationStr
+    ? parseInt(executionDurationStr, 10)
+    : undefined;
+
   // Создание задачи
   const task = await taskManager.addTask({
     title,
@@ -898,6 +1014,7 @@ async function showAddTaskDialog(
     dueDate,
     status: TaskStatus.Pending,
     instructionId,
+    executionDuration,
   });
 
   // Уведомление убрано - задача появится в списке
