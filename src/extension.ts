@@ -12,85 +12,112 @@ import { Task, Priority, TaskStatus } from "./models/task";
  * Активация расширения
  */
 export function activate(context: vscode.ExtensionContext) {
-  console.log("TaskFlow расширение активировано");
+  try {
+    console.log("TaskFlow расширение активируется...");
 
-  // Инициализация менеджера задач
-  const taskManager = new TaskManager(context);
-  taskManager.initialize();
+    // Инициализация менеджера задач
+    const taskManager = new TaskManager(context);
+    taskManager.initialize();
+    console.log("TaskManager инициализирован");
 
-  // Инициализация менеджера инструкций
-  const instructionManager = new InstructionManager(context);
-  instructionManager.initialize();
+    // Инициализация менеджера инструкций
+    const instructionManager = new InstructionManager(context);
+    instructionManager.initialize();
+    console.log("InstructionManager инициализирован");
 
-  // Инициализация провайдера TreeView для задач
-  const taskTreeProvider = new TaskTreeProvider(taskManager);
-  const tasksView = vscode.window.createTreeView("taskflow.tasksView", {
-    treeDataProvider: taskTreeProvider,
-    showCollapseAll: true,
-    canSelectMany: false,
-  });
-
-  // Инициализация провайдера TreeView для очереди
-  const queueTreeProvider = new QueueTreeProvider(taskManager);
-  const queueView = vscode.window.createTreeView("taskflow.queueView", {
-    treeDataProvider: queueTreeProvider,
-    showCollapseAll: true,
-    canSelectMany: false,
-  });
-
-  // Инициализация провайдера TreeView для выполненных задач
-  const completedTasksTreeProvider = new CompletedTasksTreeProvider(
-    taskManager
-  );
-  const completedTasksView = vscode.window.createTreeView(
-    "taskflow.completedTasksView",
-    {
-      treeDataProvider: completedTasksTreeProvider,
+    // Инициализация провайдера TreeView для задач
+    console.log("Создание TaskTreeProvider...");
+    const taskTreeProvider = new TaskTreeProvider(taskManager);
+    const tasksView = vscode.window.createTreeView("taskflow.tasksView", {
+      treeDataProvider: taskTreeProvider,
       showCollapseAll: true,
       canSelectMany: false,
-    }
-  );
+    });
+    console.log("TaskTreeProvider создан");
 
-  // Инициализация провайдера TreeView для инструкций
-  const instructionTreeProvider = new InstructionTreeProvider(
-    instructionManager
-  );
-  const instructionsView = vscode.window.createTreeView(
-    "taskflow.instructionsView",
-    {
-      treeDataProvider: instructionTreeProvider,
-      showCollapseAll: false,
+    // Инициализация провайдера TreeView для очереди
+    console.log("Создание QueueTreeProvider...");
+    const queueTreeProvider = new QueueTreeProvider(taskManager);
+    const queueView = vscode.window.createTreeView("taskflow.queueView", {
+      treeDataProvider: queueTreeProvider,
+      showCollapseAll: true,
       canSelectMany: false,
-    }
-  );
+    });
+    console.log("QueueTreeProvider создан");
 
-  // Инициализация интеграции с Copilot
-  const copilotIntegration = new CopilotIntegration(
-    context,
-    instructionManager
-  );
+    // Инициализация провайдера TreeView для выполненных задач
+    console.log("Создание CompletedTasksTreeProvider...");
+    const completedTasksTreeProvider = new CompletedTasksTreeProvider(
+      taskManager
+    );
+    const completedTasksView = vscode.window.createTreeView(
+      "taskflow.completedTasksView",
+      {
+        treeDataProvider: completedTasksTreeProvider,
+        showCollapseAll: true,
+        canSelectMany: false,
+      }
+    );
+    console.log("CompletedTasksTreeProvider создан");
 
-  // Регистрация команд
-  registerCommands(
-    context,
-    taskManager,
-    instructionManager,
-    taskTreeProvider,
-    copilotIntegration
-  );
+    // Инициализация провайдера TreeView для инструкций
+    console.log("Создание InstructionTreeProvider...");
+    const instructionTreeProvider = new InstructionTreeProvider(
+      instructionManager
+    );
+    const instructionsView = vscode.window.createTreeView(
+      "taskflow.instructionsView",
+      {
+        treeDataProvider: instructionTreeProvider,
+        showCollapseAll: false,
+        canSelectMany: false,
+      }
+    );
+    console.log("InstructionTreeProvider создан");
 
-  // Добавление в подписки для очистки
-  context.subscriptions.push(
-    tasksView,
-    queueView,
-    completedTasksView,
-    instructionsView,
-    taskManager,
-    instructionManager
-  );
+    // Инициализация интеграции с Copilot
+    console.log("Создание CopilotIntegration...");
+    const copilotIntegration = new CopilotIntegration(
+      context,
+      instructionManager
+    );
+    console.log("CopilotIntegration создан");
 
-  // Показать приветственное сообщение при первом запуске
-  showWelcomeMessage(context);
+    // Регистрация команд
+    console.log("Регистрация команд...");
+    registerCommands(
+      context,
+      taskManager,
+      instructionManager,
+      taskTreeProvider,
+      copilotIntegration
+    );
+    console.log("Команды зарегистрированы");
+
+    // Добавление в подписки для очистки
+    console.log("Добавление в subscriptions...");
+    context.subscriptions.push(
+      tasksView,
+      queueView,
+      completedTasksView,
+      instructionsView,
+      taskManager,
+      instructionManager
+    );
+
+    // Показать приветственное сообщение при первом запуске
+    showWelcomeMessage(context);
+
+    console.log("TaskFlow расширение успешно активировано!");
+  } catch (error) {
+    console.error("ОШИБКА активации TaskFlow:", error);
+    vscode.window.showErrorMessage(
+      `Ошибка активации TaskFlow: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    throw error; // Пробрасываем ошибку дальше
+  }
 }
 
 /**

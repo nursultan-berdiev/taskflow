@@ -2,8 +2,18 @@
   "name": "taskflow",
   "displayName": "TaskFlow - AI-Powered Task Management",
   "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода с кастомными инструкциями",
-  "version": "2.2.0",
+  "version": "2.2.3",
   "publisher": "nursultanberdiev",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nursultan-berdiev/taskflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nursultan-berdiev/taskflow/issues"
+  },
+  "homepage": "https://github.com/nursultan-berdiev/taskflow#readme",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.80.0"
   },

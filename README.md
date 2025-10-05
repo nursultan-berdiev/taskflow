@@ -1,8 +1,8 @@
 # TaskFlow - Управление задачами с интеграцией AI
 
-<p align="center">
+<!-- <p align="center">
   <img src="resources/taskflow-icon.svg" alt="TaskFlow Logo" width="128" height="128">
-</p>
+</p> -->
 
 TaskFlow - это мощное расширение для Visual Studio Code, которое позволяет разработчикам эффективно управлять задачами прямо в IDE.
 

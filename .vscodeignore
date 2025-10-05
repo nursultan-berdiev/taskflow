@@ -1,4 +1,22 @@
-out
-node_modules
-.vscode-test/
+src/**
+.vscode/**
+.vscode-test/**
+.gitignore
+.yarnrc
+.env
+webpack.config.js
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
 *.vsix
+check_extension.sh
+find_taskflow_logs.sh
+Makefile
+
+# Исключить dev зависимости из node_modules
+node_modules/@types/**
+node_modules/typescript/**
+node_modules/vscode/**
+node_modules/@vscode/**
