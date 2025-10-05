@@ -107,9 +107,7 @@ function registerCommands(
 
         if (result === "Удалить") {
           await taskManager.deleteTask(item.task.id);
-          vscode.window.showInformationMessage(
-            `Задача "${item.task.title}" удалена`
-          );
+          // Уведомление убрано - не мешает работе
         }
       }
     })
@@ -120,13 +118,7 @@ function registerCommands(
     vscode.commands.registerCommand("taskflow.toggleTask", async (item) => {
       if (item && item.task) {
         await taskManager.toggleTask(item.task.id);
-        const newStatus =
-          item.task.status === TaskStatus.Completed
-            ? "незавершенной"
-            : "завершенной";
-        vscode.window.showInformationMessage(
-          `Задача отмечена как ${newStatus}`
-        );
+        // Уведомление убрано - статус виден в UI
       }
     })
   );
@@ -151,7 +143,7 @@ function registerCommands(
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.refreshTasks", () => {
       taskTreeProvider.refresh();
-      vscode.window.showInformationMessage("Список задач обновлен");
+      // Уведомление убрано - обновление видно сразу в UI
     })
   );
 
@@ -208,9 +200,7 @@ function registerCommands(
       if (item && item.task) {
         try {
           await taskManager.addToQueue(item.task.id);
-          vscode.window.showInformationMessage(
-            `Задача "${item.task.title}" добавлена в очередь`
-          );
+          // Уведомление убрано - задача появится в очереди
         } catch (error: any) {
           vscode.window.showErrorMessage(error.message);
         }
@@ -226,9 +216,7 @@ function registerCommands(
         if (item && item.task) {
           try {
             await taskManager.removeFromQueue(item.task.id);
-            vscode.window.showInformationMessage(
-              `Задача "${item.task.title}" удалена из очереди`
-            );
+            // Уведомление убрано - задача исчезнет из очереди
           } catch (error: any) {
             vscode.window.showErrorMessage(error.message);
           }
@@ -257,9 +245,7 @@ function registerCommands(
         if (newPosition) {
           try {
             await taskManager.moveInQueue(item.task.id, parseInt(newPosition));
-            vscode.window.showInformationMessage(
-              `Задача "${item.task.title}" перемещена на позицию ${newPosition}`
-            );
+            // Уведомление убрано - новая позиция видна в очереди
           } catch (error: any) {
             vscode.window.showErrorMessage(error.message);
           }
@@ -277,9 +263,7 @@ function registerCommands(
           const taskId = nextTask.id;
           const taskTitle = nextTask.title;
 
-          vscode.window.showInformationMessage(
-            `Начата работа над задачей: "${taskTitle}"`
-          );
+          // Уведомление убрано - Copilot откроется автоматически
 
           // Автоматически запустить генерацию кода через Copilot
           const shouldComplete = await copilotIntegration.generateCodeForTask(
@@ -295,9 +279,7 @@ function registerCommands(
                 ...currentTask,
                 status: TaskStatus.Completed,
               });
-              vscode.window.showInformationMessage(
-                `Задача "${taskTitle}" отмечена как выполненная`
-              );
+              // Уведомление убрано - статус виден в UI
             }
           }
         }
@@ -321,9 +303,7 @@ function registerCommands(
               const nextTaskId = nextTask.id;
               const nextTaskTitle = nextTask.title;
 
-              vscode.window.showInformationMessage(
-                `Задача "${item.task.title}" завершена. Начата работа над: "${nextTaskTitle}"`
-              );
+              // Уведомление убрано - следующая задача откроется в Copilot
 
               // Автоматически запустить генерацию кода через Copilot для следующей задачи
               const shouldComplete =
@@ -338,15 +318,11 @@ function registerCommands(
                     ...currentTask,
                     status: TaskStatus.Completed,
                   });
-                  vscode.window.showInformationMessage(
-                    `Задача "${nextTaskTitle}" отмечена как выполненная`
-                  );
+                  // Уведомление убрано - статус виден в UI
                 }
               }
             } else {
-              vscode.window.showInformationMessage(
-                `Задача "${item.task.title}" завершена`
-              );
+              // Уведомление убрано - завершение видно в UI
             }
           } catch (error: any) {
             vscode.window.showErrorMessage(error.message);
@@ -381,9 +357,7 @@ function registerCommands(
                   ...currentTask,
                   status: TaskStatus.Completed,
                 });
-                vscode.window.showInformationMessage(
-                  `Задача "${taskTitle}" выполнена с помощью Copilot`
-                );
+                // Уведомление убрано - завершение видно в UI
               }
             }
           } catch (error: any) {
@@ -468,11 +442,7 @@ function registerCommands(
               taskId = task.id;
               taskTitle = task.title;
 
-              vscode.window.showInformationMessage(
-                `[${
-                  completedCount + 1
-                }/${totalTasks}] Генерация кода для: "${taskTitle}"...`
-              );
+              // Уведомление убрано - прогресс виден в Copilot Chat
 
               // Генерация кода и ожидание подтверждения от пользователя
               // autoComplete=false означает, что будет показан диалог подтверждения
@@ -499,14 +469,10 @@ function registerCommands(
 
                 completedCount++;
 
-                vscode.window.showInformationMessage(
-                  `✅ Задача "${taskTitle}" выполнена (${completedCount}/${totalTasks})`
-                );
+                // Уведомление убрано - прогресс виден в UI
               } else {
                 // Пользователь пропустил задачу
-                vscode.window.showWarningMessage(
-                  `⚠️ Задача "${taskTitle}" пропущена. Переходим к следующей...`
-                );
+                // Уведомление убрано - пользователь уже видел persistent notification
 
                 // Удаляем из очереди, но НЕ отмечаем как completed
                 await taskManager.removeFromQueue(taskId);
@@ -640,7 +606,7 @@ async function showAddTaskDialog(taskManager: TaskManager): Promise<void> {
     status: TaskStatus.Pending,
   });
 
-  vscode.window.showInformationMessage(`Задача "${task.title}" создана!`);
+  // Уведомление убрано - задача появится в списке
 }
 
 /**

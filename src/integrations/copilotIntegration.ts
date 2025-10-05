@@ -74,9 +74,7 @@ export class CopilotIntegration {
         query: prompt,
       });
 
-      vscode.window.showInformationMessage(
-        `Запрос отправлен в Copilot для задачи: ${task.title}`
-      );
+      // Уведомление убрано - Copilot Chat открывается автоматически
     } catch (error) {
       // Альтернативный метод: копирование промпта в буфер обмена
       await vscode.env.clipboard.writeText(prompt);
