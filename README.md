@@ -9,18 +9,21 @@ TaskFlow - это мощное расширение для Visual Studio Code, �
 > ## � Дополнительная документация
 
 ### 🎯 Для пользователей
+
 - [�🚀 Быстрый старт тестирования v2.0.1](docs/QUICK_START_TESTING.md)
 - [📋 Чеклист тестирования v2.0.1](docs/TESTING_CHECKLIST_V2.0.1.md)
 - [📝 Резюме изменений v2.0.1](docs/SUMMARY_V2.0.1.md)
 
 ### 🔧 Для разработчиков
+
 - [🤖 Анализ VS Code Chat API](COPILOT_CHAT_API_ANALYSIS.md) - 630+ строк исследования
 - [💾 Гибридная архитектура хранения](HYBRID_STORAGE.md) - Map + JSON + Markdown
 - [📝 Что нового в v2.0.x](WHATS_NEW.md)
 - [📋 История изменений](CHANGELOG.md)
 
 ### 📚 Полная документация
-- [📖 Навигация по документации](docs/README.md)ерсия 2.0.1**: Улучшенный UX с persistent notification! Теперь уведомления не блокируют работу в VS Code. [Что нового?](./WHATS_NEW.md)
+
+- [📖 Навигация по документации](docs/README.md)ерсия 2.0.1\*\*: Улучшенный UX с persistent notification! Теперь уведомления не блокируют работу в VS Code. [Что нового?](./WHATS_NEW.md)
 
 ## 💾 Хранение данных
 

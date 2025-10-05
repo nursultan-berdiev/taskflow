@@ -1,8 +1,8 @@
 {
   "name": "taskflow",
   "displayName": "TaskFlow - AI-Powered Task Management",
-  "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода",
-  "version": "2.1.0",
+  "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода с кастомными инструкциями",
+  "version": "2.2.0",
   "publisher": "taskflow",
   "engines": {
     "vscode": "^1.80.0"
@@ -126,6 +126,41 @@
         "title": "Выполнить задачу с Copilot",
         "category": "TaskFlow",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "taskflow.createInstruction",
+        "title": "Создать новую инструкцию",
+        "category": "TaskFlow",
+        "icon": "$(add)"
+      },
+      {
+        "command": "taskflow.viewInstruction",
+        "title": "Просмотр инструкции",
+        "category": "TaskFlow"
+      },
+      {
+        "command": "taskflow.editInstruction",
+        "title": "Редактировать инструкцию",
+        "category": "TaskFlow",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "taskflow.deleteInstruction",
+        "title": "Удалить инструкцию",
+        "category": "TaskFlow",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "taskflow.assignInstructionToTask",
+        "title": "Назначить инструкцию задаче",
+        "category": "TaskFlow",
+        "icon": "$(link)"
+      },
+      {
+        "command": "taskflow.refreshInstructions",
+        "title": "Обновить инструкции",
+        "category": "TaskFlow",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -157,6 +192,11 @@
         {
           "id": "taskflow.categoriesView",
           "name": "Категории",
+          "icon": "resources/taskflow-icon.svg"
+        },
+        {
+          "id": "taskflow.instructionsView",
+          "name": "Инструкции",
           "icon": "resources/taskflow-icon.svg"
         }
       ]
@@ -191,6 +231,16 @@
         {
           "command": "taskflow.refreshTasks",
           "when": "view == taskflow.completedTasksView",
+          "group": "navigation"
+        },
+        {
+          "command": "taskflow.createInstruction",
+          "when": "view == taskflow.instructionsView",
+          "group": "navigation"
+        },
+        {
+          "command": "taskflow.refreshInstructions",
+          "when": "view == taskflow.instructionsView",
           "group": "navigation"
         }
       ],
@@ -239,6 +289,21 @@
           "command": "taskflow.completeAndStartNext",
           "when": "view == taskflow.tasksView && viewItem == task",
           "group": "queue@4"
+        },
+        {
+          "command": "taskflow.assignInstructionToTask",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "instruction@1"
+        },
+        {
+          "command": "taskflow.editInstruction",
+          "when": "view == taskflow.instructionsView && viewItem == instruction",
+          "group": "inline@1"
+        },
+        {
+          "command": "taskflow.deleteInstruction",
+          "when": "view == taskflow.instructionsView && viewItem == instruction",
+          "group": "actions@1"
         }
       ],
       "commandPalette": [
@@ -252,6 +317,22 @@
         },
         {
           "command": "taskflow.toggleTask",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.viewInstruction",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.editInstruction",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.deleteInstruction",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.assignInstructionToTask",
           "when": "false"
         }
       ]

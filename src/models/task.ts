@@ -41,6 +41,7 @@ export interface Task {
   updatedAt: Date;
   assignee?: string;
   queuePosition?: number; // Позиция в очереди выполнения (null если не в очереди)
+  instructionId?: string; // ID кастомной инструкции для Copilot (если не указано - используется по умолчанию)
 }
 
 /**

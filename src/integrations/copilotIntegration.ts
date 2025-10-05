@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { Task } from "../models/task";
+import { InstructionManager } from "../managers/instructionManager";
 
 /**
  * Интеграция с GitHub Copilot для генерации кода на основе задач
@@ -7,7 +8,10 @@ import { Task } from "../models/task";
 export class CopilotIntegration {
   private copilotAvailable: boolean = false;
 
-  constructor(private context: vscode.ExtensionContext) {
+  constructor(
+    private context: vscode.ExtensionContext,
+    private instructionManager: InstructionManager
+  ) {
     this.checkCopilotAvailability();
   }
 
@@ -154,14 +158,24 @@ export class CopilotIntegration {
       }
     }
 
-    // Добавление инструкций для Copilot
+    // Добавление кастомной инструкции или инструкции по умолчанию
     prompt += `\n## Инструкции\n`;
-    prompt += `Пожалуйста, помоги мне реализовать эту задачу. `;
-    prompt += `Сгенерируй код с учетом контекста проекта, `;
-    prompt += `добавь комментарии и следуй лучшим практикам. `;
+    
+    const instruction = task.instructionId
+      ? this.instructionManager.getInstruction(task.instructionId)
+      : this.instructionManager.getDefaultInstruction();
+
+    if (instruction) {
+      prompt += instruction.content;
+    } else {
+      // Fallback если инструкция не найдена
+      prompt += `Пожалуйста, помоги мне реализовать эту задачу. `;
+      prompt += `Сгенерируй код с учетом контекста проекта, `;
+      prompt += `добавь комментарии и следуй лучшим практикам.`;
+    }
 
     if (task.subtasks && task.subtasks.length > 0) {
-      prompt += `Обрати внимание на подзадачи - они описывают шаги реализации.`;
+      prompt += `\n\nОбрати внимание на подзадачи - они описывают шаги реализации.`;
     }
 
     return prompt;

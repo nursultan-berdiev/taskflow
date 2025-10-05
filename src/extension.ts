@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
 import { TaskManager } from "./managers/taskManager";
+import { InstructionManager } from "./managers/instructionManager";
 import { TaskTreeProvider } from "./views/taskTreeProvider";
 import { QueueTreeProvider } from "./views/queueTreeProvider";
 import { CompletedTasksTreeProvider } from "./views/completedTasksTreeProvider";
+import { InstructionTreeProvider } from "./views/instructionTreeProvider";
 import { CopilotIntegration } from "./integrations/copilotIntegration";
 import { Task, Priority, TaskStatus } from "./models/task";
 
@@ -15,6 +17,10 @@ export function activate(context: vscode.ExtensionContext) {
   // Инициализация менеджера задач
   const taskManager = new TaskManager(context);
   taskManager.initialize();
+
+  // Инициализация менеджера инструкций
+  const instructionManager = new InstructionManager(context);
+  instructionManager.initialize();
 
   // Инициализация провайдера TreeView для задач
   const taskTreeProvider = new TaskTreeProvider(taskManager);
@@ -45,18 +51,33 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // Инициализация провайдера TreeView для инструкций
+  const instructionTreeProvider = new InstructionTreeProvider(
+    instructionManager
+  );
+  const instructionsView = vscode.window.createTreeView(
+    "taskflow.instructionsView",
+    {
+      treeDataProvider: instructionTreeProvider,
+      showCollapseAll: false,
+      canSelectMany: false,
+    }
+  );
+
   // Инициализация интеграции с Copilot
-  const copilotIntegration = new CopilotIntegration(context);
+  const copilotIntegration = new CopilotIntegration(context, instructionManager);
 
   // Регистрация команд
-  registerCommands(context, taskManager, taskTreeProvider, copilotIntegration);
+  registerCommands(context, taskManager, instructionManager, taskTreeProvider, copilotIntegration);
 
   // Добавление в подписки для очистки
   context.subscriptions.push(
     tasksView,
     queueView,
     completedTasksView,
-    taskManager
+    instructionsView,
+    taskManager,
+    instructionManager
   );
 
   // Показать приветственное сообщение при первом запуске
@@ -69,6 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
 function registerCommands(
   context: vscode.ExtensionContext,
   taskManager: TaskManager,
+  instructionManager: InstructionManager,
   taskTreeProvider: TaskTreeProvider,
   copilotIntegration: CopilotIntegration
 ) {
@@ -82,7 +104,7 @@ function registerCommands(
   // Добавление новой задачи
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.addTask", async () => {
-      await showAddTaskDialog(taskManager);
+      await showAddTaskDialog(taskManager, instructionManager);
     })
   );
 
@@ -521,12 +543,227 @@ function registerCommands(
       }
     )
   );
+
+  // === Команды для управления инструкциями ===
+
+  // Создать новую инструкцию
+  context.subscriptions.push(
+    vscode.commands.registerCommand("taskflow.createInstruction", async () => {
+      const name = await vscode.window.showInputBox({
+        prompt: "Введите название инструкции",
+        placeHolder: "Например: Создание REST API",
+        validateInput: (value) => {
+          if (!value || value.trim().length === 0) {
+            return "Название не может быть пустым";
+          }
+          return null;
+        },
+      });
+
+      if (!name) {
+        return;
+      }
+
+      const description = await vscode.window.showInputBox({
+        prompt: "Введите описание инструкции (необязательно)",
+        placeHolder: "Краткое описание того, для чего используется инструкция",
+      });
+
+      const content = await vscode.window.showInputBox({
+        prompt: "Введите текст инструкции для Copilot",
+        placeHolder: "Пожалуйста, сгенерируй код следуя правилам...",
+        validateInput: (value) => {
+          if (!value || value.trim().length === 0) {
+            return "Инструкция не может быть пустой";
+          }
+          return null;
+        },
+      });
+
+      if (!content) {
+        return;
+      }
+
+      try {
+        const instruction = await instructionManager.createInstruction(
+          name,
+          content,
+          description
+        );
+        vscode.window.showInformationMessage(
+          `Инструкция "${instruction.name}" создана`
+        );
+      } catch (error: any) {
+        vscode.window.showErrorMessage(
+          `Ошибка при создании инструкции: ${error.message}`
+        );
+      }
+    })
+  );
+
+  // Просмотр инструкции
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "taskflow.viewInstruction",
+      async (instruction) => {
+        if (!instruction) {
+          return;
+        }
+
+        const instructionData =
+          instruction.instruction || instruction;
+
+        const panel = vscode.window.createWebviewPanel(
+          "instructionView",
+          instructionData.name,
+          vscode.ViewColumn.One,
+          { enableScripts: false }
+        );
+
+        panel.webview.html = getInstructionWebviewContent(instructionData);
+      }
+    )
+  );
+
+  // Редактировать инструкцию
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "taskflow.editInstruction",
+      async (item) => {
+        if (!item || !item.instruction) {
+          return;
+        }
+
+        const instruction = item.instruction;
+
+        if (instruction.isDefault) {
+          vscode.window.showWarningMessage(
+            "Инструкцию по умолчанию нельзя редактировать"
+          );
+          return;
+        }
+
+        try {
+          await instructionManager.openInstruction(instruction.id);
+        } catch (error: any) {
+          vscode.window.showErrorMessage(
+            `Ошибка при открытии инструкции: ${error.message}`
+          );
+        }
+      }
+    )
+  );
+
+  // Удалить инструкцию
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "taskflow.deleteInstruction",
+      async (item) => {
+        if (!item || !item.instruction) {
+          return;
+        }
+
+        const instruction = item.instruction;
+
+        if (instruction.isDefault) {
+          vscode.window.showWarningMessage(
+            "Инструкцию по умолчанию нельзя удалить"
+          );
+          return;
+        }
+
+        const result = await vscode.window.showWarningMessage(
+          `Удалить инструкцию "${instruction.name}"?`,
+          { modal: true },
+          "Удалить"
+        );
+
+        if (result !== "Удалить") {
+          return;
+        }
+
+        try {
+          await instructionManager.deleteInstruction(instruction.id);
+          vscode.window.showInformationMessage(
+            `Инструкция "${instruction.name}" удалена`
+          );
+        } catch (error: any) {
+          vscode.window.showErrorMessage(
+            `Ошибка при удалении инструкции: ${error.message}`
+          );
+        }
+      }
+    )
+  );
+
+  // Назначить инструкцию задаче
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "taskflow.assignInstructionToTask",
+      async (item) => {
+        if (!item || !item.task) {
+          return;
+        }
+
+        const task = item.task;
+        const instructions = instructionManager.getAllInstructions();
+
+        const items = instructions.map((inst) => ({
+          label: inst.name,
+          description: inst.isDefault ? "По умолчанию" : inst.description,
+          instruction: inst,
+          picked: task.instructionId === inst.id,
+        }));
+
+        const selected = await vscode.window.showQuickPick(items, {
+          placeHolder: "Выберите инструкцию для задачи",
+        });
+
+        if (!selected) {
+          return;
+        }
+
+        try {
+          const instructionId =
+            selected.instruction.id === "default"
+              ? undefined
+              : selected.instruction.id;
+
+          await taskManager.updateTask(task.id, {
+            ...task,
+            instructionId,
+          });
+
+          vscode.window.showInformationMessage(
+            `Инструкция "${selected.instruction.name}" назначена задаче "${task.title}"`
+          );
+        } catch (error: any) {
+          vscode.window.showErrorMessage(
+            `Ошибка при назначении инструкции: ${error.message}`
+          );
+        }
+      }
+    )
+  );
+
+  // Обновить список инструкций
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "taskflow.refreshInstructions",
+      async () => {
+        await instructionManager.initialize();
+      }
+    )
+  );
 }
 
 /**
  * Диалог добавления новой задачи
  */
-async function showAddTaskDialog(taskManager: TaskManager): Promise<void> {
+async function showAddTaskDialog(
+  taskManager: TaskManager,
+  instructionManager: InstructionManager
+): Promise<void> {
   // Название задачи
   const title = await vscode.window.showInputBox({
     prompt: "Введите название задачи",
@@ -596,6 +833,27 @@ async function showAddTaskDialog(taskManager: TaskManager): Promise<void> {
 
   const dueDate = dueDateStr ? new Date(dueDateStr) : undefined;
 
+  // Выбор инструкции для Copilot
+  const instructions = instructionManager.getAllInstructions();
+  const instructionItems = instructions.map((inst) => ({
+    label: inst.name,
+    description: inst.isDefault ? "По умолчанию" : inst.description,
+    value: inst.id,
+  }));
+
+  const selectedInstruction = await vscode.window.showQuickPick(
+    instructionItems,
+    {
+      placeHolder:
+        "Выберите инструкцию для Copilot (необязательно, по умолчанию будет стандартная)",
+    }
+  );
+
+  const instructionId =
+    selectedInstruction && selectedInstruction.value !== "default"
+      ? selectedInstruction.value
+      : undefined;
+
   // Создание задачи
   const task = await taskManager.addTask({
     title,
@@ -604,6 +862,7 @@ async function showAddTaskDialog(taskManager: TaskManager): Promise<void> {
     priority,
     dueDate,
     status: TaskStatus.Pending,
+    instructionId,
   });
 
   // Уведомление убрано - задача появится в списке
@@ -929,6 +1188,84 @@ function showWelcomeMessage(context: vscode.ExtensionContext): void {
 /**
  * Деактивация расширения
  */
+/**
+ * Генерация HTML для webview просмотра инструкции
+ */
+function getInstructionWebviewContent(instruction: any): string {
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${instruction.name}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+        }
+        h1 {
+            color: var(--vscode-editor-foreground);
+            border-bottom: 2px solid var(--vscode-panel-border);
+            padding-bottom: 10px;
+        }
+        .description {
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        .content {
+            background-color: var(--vscode-textCodeBlock-background);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid var(--vscode-panel-border);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .metadata {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: var(--vscode-descriptionForeground);
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            background-color: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            font-size: 0.85em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>${instruction.name}</h1>
+    ${
+      instruction.description
+        ? `<p class="description">${instruction.description}</p>`
+        : ""
+    }
+    ${instruction.isDefault ? '<span class="badge">По умолчанию</span>' : ""}
+    <div class="content">${instruction.content}</div>
+    <div class="metadata">
+        <p>ID: <code>${instruction.id}</code></p>
+        ${
+          instruction.createdAt
+            ? `<p>Создано: ${new Date(instruction.createdAt).toLocaleString("ru-RU")}</p>`
+            : ""
+        }
+        ${
+          instruction.updatedAt
+            ? `<p>Обновлено: ${new Date(instruction.updatedAt).toLocaleString("ru-RU")}</p>`
+            : ""
+        }
+    </div>
+</body>
+</html>`;
+}
+
 export function deactivate() {
   console.log("TaskFlow расширение деактивировано");
 }
