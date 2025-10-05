@@ -1,0 +1,310 @@
+{
+  "name": "taskflow",
+  "displayName": "TaskFlow - AI-Powered Task Management",
+  "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода",
+  "version": "2.0.1",
+  "publisher": "taskflow",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "tasks",
+    "todo",
+    "markdown",
+    "copilot",
+    "productivity"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "taskflow.initializeTasks",
+        "title": "Инициализировать задачи",
+        "category": "TaskFlow"
+      },
+      {
+        "command": "taskflow.addTask",
+        "title": "Добавить новую задачу",
+        "category": "TaskFlow",
+        "icon": "$(add)"
+      },
+      {
+        "command": "taskflow.editTask",
+        "title": "Редактировать задачу",
+        "category": "TaskFlow",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "taskflow.deleteTask",
+        "title": "Удалить задачу",
+        "category": "TaskFlow",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "taskflow.toggleTask",
+        "title": "Переключить статус задачи",
+        "category": "TaskFlow",
+        "icon": "$(check)"
+      },
+      {
+        "command": "taskflow.generateCodeWithCopilot",
+        "title": "Сгенерировать код с Copilot",
+        "category": "TaskFlow",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "taskflow.refreshTasks",
+        "title": "Обновить задачи",
+        "category": "TaskFlow",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "taskflow.filterByPriority",
+        "title": "Фильтр по приоритету",
+        "category": "TaskFlow"
+      },
+      {
+        "command": "taskflow.filterByStatus",
+        "title": "Фильтр по статусу",
+        "category": "TaskFlow"
+      },
+      {
+        "command": "taskflow.showProgress",
+        "title": "Показать прогресс",
+        "category": "TaskFlow"
+      },
+      {
+        "command": "taskflow.addToQueue",
+        "title": "Добавить в очередь",
+        "category": "TaskFlow",
+        "icon": "$(add)"
+      },
+      {
+        "command": "taskflow.removeFromQueue",
+        "title": "Удалить из очереди",
+        "category": "TaskFlow",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "taskflow.moveInQueue",
+        "title": "Переместить в очереди",
+        "category": "TaskFlow",
+        "icon": "$(arrow-both)"
+      },
+      {
+        "command": "taskflow.startNextInQueue",
+        "title": "Начать следующую задачу из очереди",
+        "category": "TaskFlow",
+        "icon": "$(play)"
+      },
+      {
+        "command": "taskflow.completeAndStartNext",
+        "title": "Завершить и начать следующую",
+        "category": "TaskFlow",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "taskflow.showQueue",
+        "title": "Показать очередь задач",
+        "category": "TaskFlow",
+        "icon": "$(list-ordered)"
+      },
+      {
+        "command": "taskflow.runQueueAutomatically",
+        "title": "Запустить автоматическое выполнение очереди",
+        "category": "TaskFlow",
+        "icon": "$(run-all)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "taskflow-explorer",
+          "title": "TaskFlow",
+          "icon": "resources/taskflow-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "taskflow-explorer": [
+        {
+          "id": "taskflow.tasksView",
+          "name": "Задачи",
+          "icon": "resources/taskflow-icon.svg"
+        },
+        {
+          "id": "taskflow.queueView",
+          "name": "Очередь задач",
+          "icon": "resources/taskflow-icon.svg"
+        },
+        {
+          "id": "taskflow.completedTasksView",
+          "name": "Выполненные задачи",
+          "icon": "resources/taskflow-icon.svg"
+        },
+        {
+          "id": "taskflow.categoriesView",
+          "name": "Категории",
+          "icon": "resources/taskflow-icon.svg"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "taskflow.addTask",
+          "when": "view == taskflow.tasksView",
+          "group": "navigation"
+        },
+        {
+          "command": "taskflow.refreshTasks",
+          "when": "view == taskflow.tasksView",
+          "group": "navigation"
+        },
+        {
+          "command": "taskflow.startNextInQueue",
+          "when": "view == taskflow.queueView",
+          "group": "navigation"
+        },
+        {
+          "command": "taskflow.showQueue",
+          "when": "view == taskflow.queueView",
+          "group": "navigation"
+        },
+        {
+          "command": "taskflow.runQueueAutomatically",
+          "when": "view == taskflow.queueView",
+          "group": "navigation"
+        },
+        {
+          "command": "taskflow.refreshTasks",
+          "when": "view == taskflow.completedTasksView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "taskflow.editTask",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "inline@1"
+        },
+        {
+          "command": "taskflow.toggleTask",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "inline@2"
+        },
+        {
+          "command": "taskflow.generateCodeWithCopilot",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "copilot@1"
+        },
+        {
+          "command": "taskflow.deleteTask",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "actions@1"
+        },
+        {
+          "command": "taskflow.addToQueue",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "queue@1"
+        },
+        {
+          "command": "taskflow.removeFromQueue",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "queue@2"
+        },
+        {
+          "command": "taskflow.moveInQueue",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "queue@3"
+        },
+        {
+          "command": "taskflow.completeAndStartNext",
+          "when": "view == taskflow.tasksView && viewItem == task",
+          "group": "queue@4"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "taskflow.editTask",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.deleteTask",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.toggleTask",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "TaskFlow",
+      "properties": {
+        "taskflow.tasksFile": {
+          "type": "string",
+          "default": ".github/task_flow_tasks.md",
+          "description": "Путь к файлу для хранения задач (относительно корня workspace)"
+        },
+        "taskflow.autoSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Автоматически сохранять изменения в файл задач"
+        },
+        "taskflow.showCompletedTasks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Показывать завершенные задачи в списке"
+        },
+        "taskflow.defaultPriority": {
+          "type": "string",
+          "enum": [
+            "Высокий",
+            "Средний",
+            "Низкий"
+          ],
+          "default": "Средний",
+          "description": "Приоритет по умолчанию для новых задач"
+        },
+        "taskflow.copilotIntegration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Включить интеграцию с GitHub Copilot"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "20.x",
+    "@types/uuid": "^9.0.2",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "@vscode/test-electron": "^2.3.4",
+    "eslint": "^8.47.0",
+    "glob": "^10.3.3",
+    "mocha": "^10.2.0",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "marked": "^7.0.4",
+    "uuid": "^9.0.0"
+  }
+}
