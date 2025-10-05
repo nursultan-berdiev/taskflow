@@ -3,7 +3,7 @@
   "displayName": "TaskFlow - AI-Powered Task Management",
   "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода с кастомными инструкциями",
   "version": "2.2.0",
-  "publisher": "taskflow",
+  "publisher": "nursultanberdiev",
   "engines": {
     "vscode": "^1.80.0"
   },

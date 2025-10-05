@@ -3,3 +3,6 @@ out
 .vscode-test
 *.vsix
 .DS_Store
+
+.env
+/docs
