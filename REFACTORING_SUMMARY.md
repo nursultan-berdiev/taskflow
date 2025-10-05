@@ -312,8 +312,8 @@ F5  # или Debug > Start Debugging
 
 ```bash
 1. Cmd+Shift+P → TaskFlow: Создать задачу
-2. Проверить: ls .github/.task_flow_state.json
-3. Проверить: cat .github/.task_flow_state.json
+2. Проверить: ls .github/.task_flow/.task_flow_state.json
+3. Проверить: cat .github/.task_flow/.task_flow_state.json
 ```
 
 ### 3. Полный тест (30 минут)

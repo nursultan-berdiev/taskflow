@@ -2,7 +2,7 @@
   "name": "taskflow",
   "displayName": "TaskFlow - AI-Powered Task Management",
   "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "publisher": "taskflow",
   "engines": {
     "vscode": "^1.80.0"
@@ -250,7 +250,7 @@
       "properties": {
         "taskflow.tasksFile": {
           "type": "string",
-          "default": ".github/task_flow_tasks.md",
+          "default": ".github/.task_flow/tasks.md",
           "description": "Путь к файлу для хранения задач (относительно корня workspace)"
         },
         "taskflow.autoSave": {

@@ -1,6 +1,7 @@
 # 🧪 Руководство по тестированию новой архитектуры
 
-## 🎯 Цель
+   ```bash
+   nano .github/.task_flow/.task_flow_state.json 🎯 Цель
 
 Проверить, что **гибридная система хранения** (Map + JSON + Markdown) решила проблему:
 
@@ -39,7 +40,13 @@ F5 (или Debug > Start Debugging)
    ls -la .github/
    # Должны увидеть:
    # .task_flow_state.json  ← Новый JSON файл
-   # task_flow_tasks.md      ← Markdown (автогенерация)
+      # tasks.md                ← Markdown (автогенерация)
+   
+   ```
+
+2. **Проверить содержимое JSON**:
+   ```bash
+   cat .github/.task_flow/.task_flow_state.json
    ```
 
 5. **Откройте JSON:**
@@ -69,11 +76,9 @@ F5 (или Debug > Start Debugging)
 
 6. **Откройте Markdown:**
 
+3. **Проверить Markdown**:
    ```bash
-   cat .github/task_flow_tasks.md
-   ```
-
-   **Ожидаемый результат:**
+   cat .github/.task_flow/tasks.md   **Ожидаемый результат:**
 
    - Красивое форматирование
    - Таблица с задачей
@@ -174,7 +179,7 @@ F5 (или Debug > Start Debugging)
 8. **Проверьте JSON файл:**
 
    ```bash
-   cat .github/.task_flow_state.json | jq '.tasks[] | {title, status}'
+   cat .github/.task_flow/.task_flow_state.json | jq '.tasks[] | {title, status}'
    ```
 
    **Ожидаемый результат:**
@@ -212,7 +217,7 @@ F5 (или Debug > Start Debugging)
 
    ```bash
    # В терминале
-   watch -n 1 "stat .github/.task_flow_state.json | grep Modify"
+   watch -n 1 "stat .github/.task_flow/.task_flow_state.json | grep Modify"
    ```
 
 3. **Быстро обновите задачу несколько раз:**

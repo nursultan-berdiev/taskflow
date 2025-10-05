@@ -41,7 +41,7 @@ export class TaskManager {
 
     const tasksFileName = vscode.workspace
       .getConfiguration("taskflow")
-      .get<string>("tasksFile", ".github/task_flow_tasks.md");
+      .get<string>("tasksFile", ".github/.task_flow/tasks.md");
 
     // Пути к файлам
     const workspacePath = workspaceFolders[0].uri.fsPath;
@@ -71,14 +71,14 @@ export class TaskManager {
 
     const tasksFileName = vscode.workspace
       .getConfiguration("taskflow")
-      .get<string>("tasksFile", ".github/task_flow_tasks.md");
+      .get<string>("tasksFile", ".github/.task_flow/tasks.md");
     const tasksFilePath = path.join(
       workspaceFolders[0].uri.fsPath,
       tasksFileName
     );
     const uri = vscode.Uri.file(tasksFilePath);
 
-    // Создание папки .github если её нет
+    // Создание папки .github/.task_flow если её нет
     const dirPath = path.dirname(tasksFilePath);
     const dirUri = vscode.Uri.file(dirPath);
 

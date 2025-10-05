@@ -17,7 +17,7 @@
 Ctrl+Shift+P → "TaskFlow: Инициализировать задачи"
 ```
 
-Это создаст файл `.github/task_flow_tasks.md` в вашем проекте с примерами.
+Это создаст файл `.github/.task_flow/tasks.md` в вашем проекте с примерами.
 
 ### Шаг 2: Откройте панель TaskFlow
 
@@ -42,7 +42,7 @@ Ctrl+Shift+P → "TaskFlow: Добавить новую задачу"
 **Способ 3: Напрямую в Markdown**
 
 ```markdown
-# В файле .github/task_flow_tasks.md
+# В файле .github/.task_flow/tasks.md
 
 - [ ] Моя новая задача [Высокий]
 ```

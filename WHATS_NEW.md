@@ -11,8 +11,9 @@
 
 ```
 .github/
-├── .task_flow_state.json    ← Новое! Источник правды
-└── task_flow_tasks.md        ← Как было, но автогенерация
+└── .task_flow/
+    ├── .task_flow_state.json    ← Новое! Источник правды
+    └── tasks.md                 ← Как было, но автогенерация
 ```
 
 **Что делать:** Ничего! Расширение создаст JSON автоматически.
@@ -79,7 +80,7 @@
 ```bash
 1. F5 → Запустить расширение
 2. Cmd+Shift+P → TaskFlow: Создать задачу
-3. Проверить: ls .github/.task_flow_state.json
+3. Проверить: ls .github/.task_flow/.task_flow_state.json
 ```
 
 ✅ **Успех**: JSON файл создан
@@ -110,7 +111,7 @@ chmod 755 .github/
 
 ```bash
 # Проверьте Markdown:
-cat .github/task_flow_tasks.md
+cat .github/.task_flow/tasks.md
 
 # Перезагрузите расширение:
 Developer: Reload Window
