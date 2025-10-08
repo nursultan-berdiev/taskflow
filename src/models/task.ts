@@ -109,8 +109,7 @@ export function validateTag(tag: string | undefined): TagValidationResult {
   if (!TAG_VALIDATION_REGEX.test(trimmedTag)) {
     return {
       isValid: false,
-      error:
-        "Тег может содержать только буквы, цифры, дефис и подчеркивание",
+      error: "Тег может содержать только буквы, цифры, дефис и подчеркивание",
     };
   }
 
