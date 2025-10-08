@@ -71,7 +71,10 @@ export class TrelloIntegration {
       apiKey: apiKey.trim(),
       token: token.trim(),
       boardId: boardId?.trim(),
-      listIds: listIds?.trim().split(",").map((id) => id.trim()),
+      listIds: listIds
+        ?.trim()
+        .split(",")
+        .map((id) => id.trim()),
     };
 
     return { isValid: true };
@@ -155,7 +158,8 @@ export class TrelloIntegration {
         params: {
           ...this.getAuthParams(),
           checklists: "all",
-          fields: "name,desc,idList,idBoard,labels,due,dueComplete,dateLastActivity,url,closed",
+          fields:
+            "name,desc,idList,idBoard,labels,due,dueComplete,dateLastActivity,url,closed",
         },
       }
     );
@@ -174,7 +178,8 @@ export class TrelloIntegration {
           ...this.getAuthParams(),
           filter: "open",
           checklists: "all",
-          fields: "name,desc,idList,idBoard,labels,due,dueComplete,dateLastActivity,url,closed",
+          fields:
+            "name,desc,idList,idBoard,labels,due,dueComplete,dateLastActivity,url,closed",
         },
       }
     );
@@ -331,10 +336,7 @@ export class TrelloIntegration {
   /**
    * Поиск существующей задачи по тегу и названию
    */
-  public findDuplicateTask(
-    allTasks: Task[],
-    newTask: Task
-  ): Task | undefined {
+  public findDuplicateTask(allTasks: Task[], newTask: Task): Task | undefined {
     return allTasks.find((existingTask) => {
       // Проверка 1: По ID
       if (existingTask.id === newTask.id) {
@@ -375,19 +377,16 @@ export class TrelloIntegration {
 
         switch (status) {
           case 401:
-            message +=
-              "Неверный API Key или Token. Проверьте настройки.";
+            message += "Неверный API Key или Token. Проверьте настройки.";
             break;
           case 403:
             message += "Доступ запрещён. Проверьте права доступа токена.";
             break;
           case 404:
-            message +=
-              "Доска или список не найдены. Проверьте Board ID.";
+            message += "Доска или список не найдены. Проверьте Board ID.";
             break;
           case 429:
-            message +=
-              "Превышен лимит запросов. Попробуйте позже.";
+            message += "Превышен лимит запросов. Попробуйте позже.";
             break;
           default:
             message += `HTTP ${status} - ${axiosError.message}`;

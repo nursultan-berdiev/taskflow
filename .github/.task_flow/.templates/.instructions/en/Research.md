@@ -2,6 +2,51 @@
 
 > Documentation and Research Without Code Changes
 
+## 🔄 Git Workflow - Tag Check and Branch Management
+
+### ⚠️ CRITICALLY IMPORTANT - Execute at the start of each task:
+
+1. **Check if the task has a tag**
+
+   - If the task has a tag (e.g., `research`, `docs`, `analysis`, etc.)
+
+2. **Create a new branch from the current branch**
+
+   ```bash
+   git checkout -b <tag>/<short-task-description>
+   ```
+
+   Examples:
+
+   - `git checkout -b research/typescript-best-practices`
+   - `git checkout -b docs/update-api-documentation`
+   - `git checkout -b analysis/performance-investigation`
+
+3. **Complete the task work**
+
+   - Follow all instructions below
+   - Create documentation ONLY in `docs/`
+
+4. **Commit all changes at the end**
+   ```bash
+   git add .
+   git commit -m "<tag>: <change description>"
+   ```
+   Examples:
+   - `git commit -m "research: add TypeScript best practices analysis"`
+   - `git commit -m "docs: update API documentation"`
+   - `git commit -m "analysis: add performance investigation report"`
+
+### 📝 Commit message format:
+
+```
+<tag>: <brief description in English>
+
+<optional: detailed description>
+```
+
+---
+
 ## Basic Rules
 
 ### 🚫 Prohibitions
@@ -20,18 +65,22 @@
 #### STRICTLY PROHIBITED:
 
 1. **Creating .md files outside the `docs/` folder**
+
    - ✅ Create documentation ONLY in `docs/`
    - ❌ DO NOT create `.md` files in project root or other folders
 
 2. **Creating .sh or bash scripts**
+
    - ✅ Run commands directly in the terminal (if necessary)
    - ❌ DO NOT create `.sh`, `.bash` or any shell script files
 
 3. **Commands that just output text**
+
    - ❌ DO NOT use `echo "Text"` to display messages
    - ✅ Use real commands to perform tasks
 
 4. **Complex commands with &&**
+
    - ❌ DO NOT: `command1 && command2 && command3`
    - ✅ Run commands sequentially, waiting for each to complete
 

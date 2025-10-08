@@ -2,6 +2,51 @@
 
 > Professional Clean Code Guidelines
 
+## 🔄 Git Workflow - Tag Check and Branch Management
+
+### ⚠️ CRITICALLY IMPORTANT - Execute at the start of each task:
+
+1. **Check if the task has a tag**
+
+   - If the task has a tag (e.g., `feature`, `bugfix`, `refactor`, etc.)
+
+2. **Create a new branch from the current branch**
+
+   ```bash
+   git checkout -b <tag>/<short-task-description>
+   ```
+
+   Examples:
+
+   - `git checkout -b feature/add-user-authentication`
+   - `git checkout -b bugfix/fix-memory-leak`
+   - `git checkout -b refactor/improve-error-handling`
+
+3. **Complete the task work**
+
+   - Follow all instructions below
+   - Write clean code according to guidelines
+
+4. **Commit all changes at the end**
+   ```bash
+   git add .
+   git commit -m "<tag>: <change description>"
+   ```
+   Examples:
+   - `git commit -m "feature: add user authentication module"`
+   - `git commit -m "bugfix: fix memory leak in data processing"`
+   - `git commit -m "refactor: improve error handling in API layer"`
+
+### 📝 Commit message format:
+
+```
+<tag>: <brief description in English>
+
+<optional: detailed description>
+```
+
+---
+
 ## Clean Code Principles
 
 ### 1. Readability and Clarity
@@ -69,18 +114,22 @@
 #### 🚫 STRICTLY PROHIBITED:
 
 1. **Creating .md files outside the `docs/` folder**
+
    - ✅ Create documentation ONLY in `docs/`
    - ❌ DO NOT create `.md` files in project root or other folders
 
 2. **Creating .sh or bash scripts**
+
    - ✅ Run commands directly in the terminal
    - ❌ DO NOT create `.sh`, `.bash` or any shell script files
 
 3. **Commands that just output text**
+
    - ❌ DO NOT use `echo "Text"` to display messages
    - ✅ Use real commands to perform tasks
 
 4. **Complex commands with &&**
+
    - ❌ DO NOT: `command1 && command2 && command3`
    - ✅ Run commands sequentially, waiting for each to complete
 
