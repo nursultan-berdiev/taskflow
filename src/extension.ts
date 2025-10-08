@@ -8,6 +8,7 @@ import { InstructionTreeProvider } from "./views/instructionTreeProvider";
 import { TaskEditorPanel } from "./views/taskEditorPanel";
 import { CopilotIntegration } from "./integrations/copilotIntegration";
 import { YouTrackIntegration } from "./integrations/youtrackIntegration";
+import { TrelloIntegration } from "./integrations/trelloIntegration";
 import { Task, Priority, TaskStatus, ProgressStats } from "./models/task";
 import { Instruction } from "./models/instruction";
 import { ApiTaskImporter } from "./services/apiTaskImporter";
@@ -206,7 +207,8 @@ function registerCommands(
           .map((task, index) => `${index + 1}. ${task.title}`)
           .join("\n");
 
-        const message = `Вы уверены, что хотите удалить категорию "${categoryName}"?\n\n` +
+        const message =
+          `Вы уверены, что хотите удалить категорию "${categoryName}"?\n\n` +
           `Будут удалены следующие задачи (${tasksInCategory.length}):\n\n${taskList}`;
 
         const result = await vscode.window.showWarningMessage(
@@ -496,10 +498,13 @@ function registerCommands(
     )
   );
 
-  // Импортировать задачи из API (YouTrack или Generic API)
+  // Импортировать задачи из API (Trello, YouTrack или Generic API)
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.importTasksFromApi", async () => {
-      // Проверяем, что настроено: YouTrack или Generic API
+      // Проверяем, что настроено
+      const trelloApiKey = vscode.workspace
+        .getConfiguration("taskflow.trello")
+        .get<string>("apiKey");
       const youtrackUrl = vscode.workspace
         .getConfiguration("taskflow.youtrack")
         .get<string>("baseUrl");
@@ -507,8 +512,80 @@ function registerCommands(
         .getConfiguration("taskflow")
         .get<string>("apiTasksUrl");
 
-      // Если настроен YouTrack - используем его
-      if (youtrackUrl && youtrackUrl.trim() !== "") {
+      // Если настроен Trello - используем его
+      if (trelloApiKey && trelloApiKey.trim() !== "") {
+        const trelloIntegration = new TrelloIntegration();
+        const initialized = await trelloIntegration.initialize();
+
+        if (!initialized) {
+          return;
+        }
+
+        // Предлагаем проверить подключение
+        const testConnection = await vscode.window.showQuickPick(
+          ["Импортировать задачи", "Проверить подключение"],
+          {
+            placeHolder: "Выберите действие",
+            ignoreFocusOut: true,
+          }
+        );
+
+        if (testConnection === "Проверить подключение") {
+          await trelloIntegration.testConnection();
+          return;
+        }
+
+        if (testConnection === "Импортировать задачи") {
+          try {
+            const tasks = await trelloIntegration.importCards();
+
+            if (tasks.length === 0) {
+              vscode.window.showInformationMessage(
+                "Не найдено карточек для импорта из Trello"
+              );
+              return;
+            }
+
+            // Добавляем задачи через TaskManager
+            let importedCount = 0;
+            let skippedCount = 0;
+            const allExistingTasks = taskManager.getTasks();
+
+            for (const task of tasks) {
+              // Ищем дубликаты по ID, тегу и названию
+              const existingTask = trelloIntegration.findDuplicateTask(
+                allExistingTasks,
+                task
+              );
+
+              if (existingTask) {
+                // Задача уже существует - обновляем её
+                taskManager.updateTask(existingTask.id, {
+                  ...task,
+                  id: existingTask.id, // Сохраняем оригинальный ID
+                });
+                skippedCount++;
+              } else {
+                // Новая задача - добавляем
+                taskManager.addTask(task);
+                importedCount++;
+              }
+            }
+
+            vscode.window.showInformationMessage(
+              `✅ Импорт из Trello завершён!\n` +
+                `Импортировано новых: ${importedCount}\n` +
+                `Обновлено существующих: ${skippedCount}`
+            );
+          } catch (error) {
+            vscode.window.showErrorMessage(
+              `Ошибка при импорте из Trello: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+          }
+        }
+      } else if (youtrackUrl && youtrackUrl.trim() !== "") {
         const youtrackIntegration = new YouTrackIntegration();
         const initialized = await youtrackIntegration.initialize();
 
@@ -587,13 +664,23 @@ function registerCommands(
       } else {
         // Ничего не настроено - показываем инструкцию
         const choice = await vscode.window.showWarningMessage(
-          "Не настроен ни YouTrack, ни Generic API. Выберите, что хотите настроить:",
+          "Не настроена ни одна интеграция. Выберите, что хотите настроить:",
+          "Настроить Trello",
           "Настроить YouTrack",
           "Настроить Generic API",
           "Отмена"
         );
 
-        if (choice === "Настроить YouTrack") {
+        if (choice === "Настроить Trello") {
+          vscode.window.showInformationMessage(
+            "Откройте настройки (Ctrl+,) и найдите 'TaskFlow: Trello'. " +
+              "Укажите API Key и Token с https://trello.com/app-key"
+          );
+          await vscode.commands.executeCommand(
+            "workbench.action.openSettings",
+            "taskflow.trello"
+          );
+        } else if (choice === "Настроить YouTrack") {
           vscode.window.showInformationMessage(
             "Откройте настройки (Ctrl+,) и найдите 'TaskFlow: YouTrack'. " +
               "Укажите URL сервера и токен доступа."

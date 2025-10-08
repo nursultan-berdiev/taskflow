@@ -2,7 +2,7 @@
   "name": "taskflow",
   "displayName": "TaskFlow - AI-Powered Task Management",
   "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода с кастомными инструкциями",
-  "version": "2.14.0",
+  "version": "2.15.0",
   "publisher": "nursultanberdiev",
   "icon": "icon.png",
   "repository": {
@@ -459,6 +459,30 @@
           "default": "",
           "description": "Дополнительный запрос для фильтрации задач YouTrack (опционально, например: 'State: Open')",
           "order": 103
+        },
+        "taskflow.trello.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API Key для доступа к Trello (получите на https://trello.com/app-key)",
+          "order": 200
+        },
+        "taskflow.trello.token": {
+          "type": "string",
+          "default": "",
+          "description": "Token для доступа к Trello API (сгенерируйте на странице API Key)",
+          "order": 201
+        },
+        "taskflow.trello.boardId": {
+          "type": "string",
+          "default": "",
+          "description": "ID доски в Trello для импорта карточек (опционально, если пусто - импортируются все ваши карточки)",
+          "order": 202
+        },
+        "taskflow.trello.listIds": {
+          "type": "string",
+          "default": "",
+          "description": "ID списков в Trello через запятую для фильтрации (опционально, например: 'abc123,def456')",
+          "order": 203
         }
       }
     }
