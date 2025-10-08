@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Task, TaskStatus, Priority } from "../models/task";
+import { Task, TaskStatus, Priority, validateTag } from "../models/task";
 import { TaskManager } from "../managers/taskManager";
 import { InstructionManager } from "../managers/instructionManager";
 import { CopilotIntegration } from "../integrations/copilotIntegration";
@@ -116,12 +116,22 @@ export class TaskEditorPanel {
    */
   private async saveTask(data: Partial<Task>): Promise<void> {
     try {
+      // Валидация тега
+      const tagValidation = validateTag(data.tag);
+      if (!tagValidation.isValid) {
+        vscode.window.showErrorMessage(
+          `Ошибка валидации тега: ${tagValidation.error}`
+        );
+        return;
+      }
+
       const updates: Partial<Task> = {
         title: data.title,
         description: data.description,
         status: data.status as TaskStatus,
         priority: data.priority as Priority,
         category: data.category,
+        tag: data.tag?.trim() || undefined, // Сохраняем тег или undefined если пустой
         assignee: data.assignee,
         instructionId: data.instructionId,
         executionDuration: data.executionDuration,
@@ -622,12 +632,25 @@ export class TaskEditorPanel {
         </div>
 
         <div class="form-group">
-          <label for="dueDate">Срок выполнения</label>
-          <input type="date" id="dueDate" name="dueDate" value="${dueDateValue}">
+          <label for="tag">🏷️ Тег</label>
+          <input type="text" 
+                 id="tag" 
+                 name="tag" 
+                 value="${this.escapeHtml(task.tag || "")}"
+                 maxlength="50"
+                 placeholder="например: feature, bugfix"
+                 pattern="[a-zA-Zа-яА-ЯёЁ0-9_-]+"
+                 title="Только буквы, цифры, дефис и подчеркивание">
+          <p class="info-text">Необязательное поле. Максимум 50 символов.</p>
         </div>
       </div>
 
       <div class="row">
+        <div class="form-group">
+          <label for="dueDate">Срок выполнения</label>
+          <input type="date" id="dueDate" name="dueDate" value="${dueDateValue}">
+        </div>
+
         <div class="form-group">
           <label for="assignee">Исполнитель</label>
           <input type="text" id="assignee" name="assignee" value="${this.escapeHtml(

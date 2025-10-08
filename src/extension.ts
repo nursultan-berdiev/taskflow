@@ -962,6 +962,32 @@ async function showAddTaskDialog(
     }
   }
 
+  // Тег
+  const tag = await vscode.window.showInputBox({
+    prompt: "Введите тег задачи (необязательно)",
+    placeHolder: "например: feature, bugfix, enhancement",
+    validateInput: (value) => {
+      if (!value || value.trim().length === 0) {
+        return null; // Пустое значение допустимо
+      }
+
+      const trimmedTag = value.trim();
+
+      // Проверка длины
+      if (trimmedTag.length > 50) {
+        return "Длина тега не должна превышать 50 символов";
+      }
+
+      // Проверка допустимых символов
+      const tagRegex = /^[a-zA-Zа-яА-ЯёЁ0-9_-]+$/;
+      if (!tagRegex.test(trimmedTag)) {
+        return "Тег может содержать только буквы, цифры, дефис и подчеркивание";
+      }
+
+      return null;
+    },
+  });
+
   // Приоритет
   const priorityItem = await vscode.window.showQuickPick(
     [
@@ -1038,6 +1064,7 @@ async function showAddTaskDialog(
     title,
     description,
     category,
+    tag: tag?.trim() || undefined, // Сохраняем тег или undefined если пустой
     priority,
     dueDate,
     status: TaskStatus.Pending,
