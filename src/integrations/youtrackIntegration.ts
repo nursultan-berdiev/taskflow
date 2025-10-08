@@ -89,10 +89,7 @@ export class YouTrackIntegration {
    * @param newTask Новая задача для проверки
    * @returns Найденная задача или undefined
    */
-  public findDuplicateTask(
-    allTasks: Task[],
-    newTask: Task
-  ): Task | undefined {
+  public findDuplicateTask(allTasks: Task[], newTask: Task): Task | undefined {
     return allTasks.find((existingTask) => {
       // Проверка 1: По ID (если задача уже импортировалась с тем же ID)
       if (existingTask.id === newTask.id) {

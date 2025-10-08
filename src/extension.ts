@@ -187,6 +187,53 @@ function registerCommands(
     })
   );
 
+  // Удаление категории (группы задач)
+  context.subscriptions.push(
+    vscode.commands.registerCommand("taskflow.deleteCategory", async (item) => {
+      if (item && item.category) {
+        const categoryName = item.category;
+        const tasksInCategory = taskManager.getTasksByCategory(categoryName);
+
+        if (tasksInCategory.length === 0) {
+          vscode.window.showInformationMessage(
+            `Категория "${categoryName}" не содержит задач`
+          );
+          return;
+        }
+
+        // Формируем список задач для отображения
+        const taskList = tasksInCategory
+          .map((task, index) => `${index + 1}. ${task.title}`)
+          .join("\n");
+
+        const message = `Вы уверены, что хотите удалить категорию "${categoryName}"?\n\n` +
+          `Будут удалены следующие задачи (${tasksInCategory.length}):\n\n${taskList}`;
+
+        const result = await vscode.window.showWarningMessage(
+          message,
+          { modal: true, detail: "Это действие нельзя отменить" },
+          "Удалить всё",
+          "Отмена"
+        );
+
+        if (result === "Удалить всё") {
+          try {
+            const deletedTasks = await taskManager.deleteCategory(categoryName);
+            vscode.window.showInformationMessage(
+              `✅ Категория "${categoryName}" удалена. Удалено задач: ${deletedTasks.length}`
+            );
+          } catch (error) {
+            vscode.window.showErrorMessage(
+              `Ошибка при удалении категории: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+          }
+        }
+      }
+    })
+  );
+
   // Переключение статуса задачи
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.toggleTask", async (item) => {

@@ -177,6 +177,12 @@
         "title": "Обновить инструкции",
         "category": "TaskFlow",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "taskflow.deleteCategory",
+        "title": "Удалить группу (категорию)",
+        "category": "TaskFlow",
+        "icon": "$(trash)"
       }
     ],
     "viewsContainers": {
@@ -330,6 +336,11 @@
           "command": "taskflow.deleteInstruction",
           "when": "view == taskflow.instructionsView && viewItem == instruction",
           "group": "actions@1"
+        },
+        {
+          "command": "taskflow.deleteCategory",
+          "when": "view == taskflow.tasksView && viewItem == category",
+          "group": "actions@1"
         }
       ],
       "commandPalette": [
@@ -359,6 +370,10 @@
         },
         {
           "command": "taskflow.assignInstructionToTask",
+          "when": "false"
+        },
+        {
+          "command": "taskflow.deleteCategory",
           "when": "false"
         }
       ]

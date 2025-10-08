@@ -311,6 +311,29 @@ export class TaskManager {
   }
 
   /**
+   * Удаление категории и всех задач в ней
+   * @param category Название категории для удаления
+   * @returns Массив удалённых задач
+   */
+  public async deleteCategory(category: string): Promise<Task[]> {
+    const tasksToDelete = this.getTasksByCategory(category);
+
+    if (tasksToDelete.length === 0) {
+      throw new Error(`Категория "${category}" не содержит задач`);
+    }
+
+    // Удаляем все задачи из категории
+    for (const task of tasksToDelete) {
+      this.tasks.delete(task.id);
+    }
+
+    await this.saveTasks();
+    this._onTasksChanged.fire(Array.from(this.tasks.values()));
+
+    return tasksToDelete;
+  }
+
+  /**
    * Переключение статуса задачи
    */
   public async toggleTask(id: string): Promise<void> {
