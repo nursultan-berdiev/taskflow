@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { Task, TaskStatus, Priority } from "../models/task";
 import { TaskManager } from "../managers/taskManager";
 import { InstructionManager } from "../managers/instructionManager";
+import { CopilotIntegration } from "../integrations/copilotIntegration";
 
 /**
  * WebView панель для редактирования задач
@@ -30,6 +31,7 @@ export class TaskEditorPanel {
     private readonly extensionUri: vscode.Uri,
     private readonly taskManager: TaskManager,
     private readonly instructionManager: InstructionManager,
+    private readonly copilotIntegration: CopilotIntegration,
     task: Task
   ) {
     this.task = task;
@@ -50,6 +52,9 @@ export class TaskEditorPanel {
           case "loadInstructions":
             await this.sendInstructions();
             break;
+          case "generateAI":
+            await this.handleAIGeneration(message.prompt);
+            break;
         }
       },
       null,
@@ -64,6 +69,7 @@ export class TaskEditorPanel {
     extensionUri: vscode.Uri,
     taskManager: TaskManager,
     instructionManager: InstructionManager,
+    copilotIntegration: CopilotIntegration,
     task: Task
   ): void {
     const column = vscode.ViewColumn.One;
@@ -97,6 +103,7 @@ export class TaskEditorPanel {
       extensionUri,
       taskManager,
       instructionManager,
+      copilotIntegration,
       task
     );
   }
@@ -159,6 +166,51 @@ export class TaskEditorPanel {
       command: "instructionsLoaded",
       data: instructionsData,
     });
+  }
+
+  /**
+   * Обработка генерации описания задачи через AI
+   */
+  private async handleAIGeneration(userPrompt: string): Promise<void> {
+    console.log("handleAIGeneration called with prompt:", userPrompt);
+
+    if (!userPrompt || userPrompt.trim().length === 0) {
+      console.log("Prompt is empty");
+      this.panel.webview.postMessage({
+        command: "aiError",
+        error: "Промпт не может быть пустым",
+      });
+      return;
+    }
+
+    try {
+      console.log("Calling generateTaskDescriptionFromPrompt...");
+      const generatedDescription =
+        await this.copilotIntegration.generateTaskDescriptionFromPrompt(
+          userPrompt
+        );
+
+      console.log("Generated description:", generatedDescription);
+
+      if (generatedDescription) {
+        this.panel.webview.postMessage({
+          command: "aiGenerated",
+          description: generatedDescription,
+        });
+      } else {
+        this.panel.webview.postMessage({
+          command: "aiError",
+          error: "Не удалось сгенерировать описание. Попробуйте снова.",
+        });
+      }
+    } catch (error) {
+      this.panel.webview.postMessage({
+        command: "aiError",
+        error: `Ошибка при генерации: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
   }
 
   /**
@@ -418,6 +470,78 @@ export class TaskEditorPanel {
       color: var(--vscode-descriptionForeground);
       margin-top: 5px;
     }
+
+    .ai-section {
+      padding: 15px;
+      background-color: var(--vscode-editor-background);
+      border: 2px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+
+    .ai-input-container {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .ai-input-container input[type="text"] {
+      flex: 1;
+    }
+
+    .btn-ai-generate {
+      padding: 8px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .btn-ai-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-ai-generate:active {
+      transform: translateY(0);
+    }
+
+    .btn-ai-generate:disabled {
+      background: var(--vscode-button-secondaryBackground);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .ai-status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .ai-status.loading {
+      display: block;
+      background-color: var(--vscode-inputValidation-infoBorder);
+      color: var(--vscode-foreground);
+    }
+
+    .ai-status.success {
+      display: block;
+      background-color: var(--vscode-inputValidation-infoBackground);
+      color: var(--vscode-foreground);
+    }
+
+    .ai-status.error {
+      display: block;
+      background-color: var(--vscode-inputValidation-errorBackground);
+      color: var(--vscode-inputValidation-errorForeground);
+    }
   </style>
 </head>
 <body>
@@ -438,6 +562,22 @@ export class TaskEditorPanel {
           task.description || ""
         )}</textarea>
         <p class="editor-hint">💡 Используйте панель EasyMDE сверху для форматирования Markdown</p>
+      </div>
+
+      <div class="form-group ai-section">
+        <label for="aiPrompt">🤖 AI Генерация описания</label>
+        <div class="ai-input-container">
+          <input type="text" 
+                 id="aiPrompt" 
+                 placeholder="Опишите что нужно сделать, AI сгенерирует техническое задание...">
+          <button type="button" class="btn-ai-generate">
+            ✨ Генерировать
+          </button>
+        </div>
+        <p class="editor-hint">
+          💡 AI проанализирует проект и создаст структурированное техническое задание
+        </p>
+        <div id="aiStatus" class="ai-status"></div>
       </div>
 
       <div class="row">
@@ -542,6 +682,7 @@ export class TaskEditorPanel {
     let subtasks = ${JSON.stringify(task.subtasks || [])};
 
     window.addEventListener('load', () => {
+      console.log('Window loaded');
       easyMDE = new EasyMDE({
         element: document.getElementById('description'),
         autoDownloadFontAwesome: false,
@@ -551,6 +692,15 @@ export class TaskEditorPanel {
         status: ["lines", "words"],
         toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "link", "image", "|", "preview", "side-by-side", "fullscreen", "|", "guide"]
       });
+
+      // Add event listener for AI generate button
+      const aiGenerateBtn = document.querySelector('.btn-ai-generate');
+      if (aiGenerateBtn) {
+        console.log('AI Generate button found, adding event listener');
+        aiGenerateBtn.addEventListener('click', generateWithAI);
+      } else {
+        console.error('AI Generate button not found!');
+      }
 
       vscode.postMessage({ command: 'loadInstructions' });
     });
@@ -568,6 +718,10 @@ export class TaskEditorPanel {
           }
           select.appendChild(option);
         });
+      } else if (message.command === 'aiGenerated') {
+        handleAISuccess(message.description);
+      } else if (message.command === 'aiError') {
+        handleAIError(message.error);
       }
     });
 
@@ -641,6 +795,62 @@ export class TaskEditorPanel {
       const div = document.createElement('div');
       div.textContent = text ?? '';
       return div.innerHTML;
+    }
+
+    function generateWithAI() {
+      console.log('generateWithAI called');
+      const promptInput = document.getElementById('aiPrompt');
+      const generateBtn = document.querySelector('.btn-ai-generate');
+      const statusDiv = document.getElementById('aiStatus');
+      
+      console.log('Elements:', { promptInput, generateBtn, statusDiv });
+      
+      const prompt = promptInput.value.trim();
+      console.log('Prompt:', prompt);
+
+      if (!prompt) {
+        statusDiv.className = 'ai-status error';
+        statusDiv.textContent = '⚠️ Пожалуйста, введите описание для генерации';
+        return;
+      }
+
+      statusDiv.className = 'ai-status loading';
+      statusDiv.textContent = '🤖 AI анализирует проект и генерирует техническое задание...';
+      generateBtn.disabled = true;
+
+      console.log('Sending message to vscode');
+      vscode.postMessage({
+        command: 'generateAI',
+        prompt: prompt
+      });
+    }
+
+    function handleAISuccess(description) {
+      const statusDiv = document.getElementById('aiStatus');
+      const generateBtn = document.querySelector('.btn-ai-generate');
+      
+      statusDiv.className = 'ai-status success';
+      statusDiv.textContent = '✅ Описание успешно сгенерировано и вставлено!';
+      
+      if (easyMDE) {
+        easyMDE.value(description);
+      }
+      
+      generateBtn.disabled = false;
+      
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    function handleAIError(error) {
+      const statusDiv = document.getElementById('aiStatus');
+      const generateBtn = document.querySelector('.btn-ai-generate');
+      
+      statusDiv.className = 'ai-status error';
+      statusDiv.textContent = '❌ ' + error;
+      
+      generateBtn.disabled = false;
     }
   </` +
       `script>

@@ -161,6 +161,7 @@ function registerCommands(
           context.extensionUri,
           taskManager,
           instructionManager,
+          copilotIntegration,
           item.task
         );
       }
@@ -618,6 +619,7 @@ function registerCommands(
           context.extensionUri,
           taskManager,
           instructionManager,
+          copilotIntegration,
           task
         );
       }
