@@ -17,8 +17,12 @@ export class QueueTreeProvider
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   // Настройка Drag & Drop - принимаем задачи из другой панели
-  dropMimeTypes = ["application/vnd.code.tree.taskflow"];
-  dragMimeTypes = ["application/vnd.code.tree.taskflow"];
+  // Принимаем как из tasksView, так и из queueView (для изменения порядка)
+  dropMimeTypes = [
+    "application/vnd.code.tree.taskflow.tasksview",
+    "application/vnd.code.tree.taskflow.queueview",
+  ];
+  dragMimeTypes = ["application/vnd.code.tree.taskflow.queueview"];
 
   constructor(private taskManager: TaskManager) {
     // Подписка на изменения задач
@@ -37,7 +41,7 @@ export class QueueTreeProvider
   ): Promise<void> {
     const taskIds = source.map((item) => item.task.id);
     dataTransfer.set(
-      "application/vnd.code.tree.taskflow",
+      "application/vnd.code.tree.taskflow.queueview",
       new vscode.DataTransferItem(taskIds)
     );
   }
@@ -50,12 +54,17 @@ export class QueueTreeProvider
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
-    const transferItem = dataTransfer.get("application/vnd.code.tree.taskflow");
+    // Пробуем получить данные из разных источников
+    const transferItem =
+      dataTransfer.get("application/vnd.code.tree.taskflow.tasksview") ||
+      dataTransfer.get("application/vnd.code.tree.taskflow.queueview");
+
     if (!transferItem) {
       return;
     }
 
     const taskIds = transferItem.value as string[];
+
     if (!taskIds || taskIds.length === 0) {
       return;
     }

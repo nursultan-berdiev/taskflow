@@ -12,8 +12,22 @@ export class TaskEditorPanel {
   private disposables: vscode.Disposable[] = [];
   private task: Task;
 
+  /**
+   * Генерация nonce для CSP
+   */
+  private static getNonce(): string {
+    let text = "";
+    const possible =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (let i = 0; i < 32; i++) {
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+  }
+
   private constructor(
     panel: vscode.WebviewPanel,
+    private readonly extensionUri: vscode.Uri,
     private readonly taskManager: TaskManager,
     private readonly instructionManager: InstructionManager,
     task: Task
@@ -71,12 +85,16 @@ export class TaskEditorPanel {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [extensionUri],
+        localResourceRoots: [
+          extensionUri,
+          vscode.Uri.joinPath(extensionUri, "node_modules"),
+        ],
       }
     );
 
     TaskEditorPanel.currentPanel = new TaskEditorPanel(
       panel,
+      extensionUri,
       taskManager,
       instructionManager,
       task
@@ -152,6 +170,28 @@ export class TaskEditorPanel {
       ? task.dueDate.toISOString().split("T")[0]
       : "";
 
+    const webview = this.panel.webview;
+    const nonce = TaskEditorPanel.getNonce();
+    const easymdeCssUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this.extensionUri,
+        "node_modules",
+        "easymde",
+        "dist",
+        "easymde.min.css"
+      )
+    );
+    const easymdeJsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this.extensionUri,
+        "node_modules",
+        "easymde",
+        "dist",
+        "easymde.min.js"
+      )
+    );
+    const csp = `default-src 'none'; img-src ${webview.cspSource} https:; style-src ${webview.cspSource} https://cdnjs.cloudflare.com 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com;`;
+
     const subtasksHtml = (task.subtasks || [])
       .map(
         (subtask, index) => `
@@ -169,12 +209,16 @@ export class TaskEditorPanel {
       )
       .join("");
 
-    return `<!DOCTYPE html>
+    return (
+      `<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="${csp}">
   <title>Редактирование задачи</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="${easymdeCssUri}">
   <style>
     * {
       margin: 0;
@@ -239,8 +283,33 @@ export class TaskEditorPanel {
     }
 
     textarea {
-      min-height: 120px;
+      min-height: 200px;
       resize: vertical;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .editor-hint {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    .EasyMDEContainer {
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .EasyMDEContainer .CodeMirror {
+      background-color: var(--vscode-editor-background);
+      color: var(--vscode-foreground);
+      min-height: 260px;
+    }
+
+    .EasyMDEContainer .CodeMirror-cursor {
+      border-left: 1px solid var(--vscode-editorCursor-foreground, #ffffff);
     }
 
     .row {
@@ -315,8 +384,8 @@ export class TaskEditorPanel {
       border-top: 1px solid var(--vscode-panel-border);
     }
 
-    button[type="submit"],
-    button[type="button"] {
+    .actions button[type="submit"],
+    .actions button[type="button"] {
       padding: 10px 24px;
       border: none;
       border-radius: 4px;
@@ -326,21 +395,21 @@ export class TaskEditorPanel {
       transition: background-color 0.2s;
     }
 
-    button[type="submit"] {
+    .actions button[type="submit"] {
       background-color: var(--vscode-button-background);
       color: var(--vscode-button-foreground);
     }
 
-    button[type="submit"]:hover {
+    .actions button[type="submit"]:hover {
       background-color: var(--vscode-button-hoverBackground);
     }
 
-    button[type="button"] {
+    .actions button[type="button"] {
       background-color: var(--vscode-button-secondaryBackground);
       color: var(--vscode-button-secondaryForeground);
     }
 
-    button[type="button"]:hover {
+    .actions button[type="button"]:hover {
       background-color: var(--vscode-button-secondaryHoverBackground);
     }
 
@@ -368,6 +437,7 @@ export class TaskEditorPanel {
         <textarea id="description" name="description">${this.escapeHtml(
           task.description || ""
         )}</textarea>
+        <p class="editor-hint">💡 Используйте панель EasyMDE сверху для форматирования Markdown</p>
       </div>
 
       <div class="row">
@@ -375,14 +445,14 @@ export class TaskEditorPanel {
           <label for="status">Статус</label>
           <select id="status" name="status">
             <option value="${TaskStatus.Pending}" ${
-      task.status === TaskStatus.Pending ? "selected" : ""
-    }>Ожидает</option>
+        task.status === TaskStatus.Pending ? "selected" : ""
+      }>Ожидает</option>
             <option value="${TaskStatus.InProgress}" ${
-      task.status === TaskStatus.InProgress ? "selected" : ""
-    }>В процессе</option>
+        task.status === TaskStatus.InProgress ? "selected" : ""
+      }>В процессе</option>
             <option value="${TaskStatus.Completed}" ${
-      task.status === TaskStatus.Completed ? "selected" : ""
-    }>Завершено</option>
+        task.status === TaskStatus.Completed ? "selected" : ""
+      }>Завершено</option>
           </select>
         </div>
 
@@ -390,14 +460,14 @@ export class TaskEditorPanel {
           <label for="priority">Приоритет</label>
           <select id="priority" name="priority">
             <option value="${Priority.High}" ${
-      task.priority === Priority.High ? "selected" : ""
-    }>Высокий</option>
+        task.priority === Priority.High ? "selected" : ""
+      }>Высокий</option>
             <option value="${Priority.Medium}" ${
-      task.priority === Priority.Medium ? "selected" : ""
-    }>Средний</option>
+        task.priority === Priority.Medium ? "selected" : ""
+      }>Средний</option>
             <option value="${Priority.Low}" ${
-      task.priority === Priority.Low ? "selected" : ""
-    }>Низкий</option>
+        task.priority === Priority.Low ? "selected" : ""
+      }>Низкий</option>
           </select>
         </div>
       </div>
@@ -464,16 +534,27 @@ export class TaskEditorPanel {
     </form>
   </div>
 
-  <script>
+  <script nonce="${nonce}" src="${easymdeJsUri}"></` +
+      `script>
+  <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+    let easyMDE;
     let subtasks = ${JSON.stringify(task.subtasks || [])};
 
-    // Загрузка инструкций при инициализации
     window.addEventListener('load', () => {
+      easyMDE = new EasyMDE({
+        element: document.getElementById('description'),
+        autoDownloadFontAwesome: false,
+        spellChecker: false,
+        forceSync: true,
+        minHeight: "260px",
+        status: ["lines", "words"],
+        toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "link", "image", "|", "preview", "side-by-side", "fullscreen", "|", "guide"]
+      });
+
       vscode.postMessage({ command: 'loadInstructions' });
     });
 
-    // Получение инструкций от расширения
     window.addEventListener('message', event => {
       const message = event.data;
       if (message.command === 'instructionsLoaded') {
@@ -490,14 +571,17 @@ export class TaskEditorPanel {
       }
     });
 
-    // Обработка отправки формы
     document.getElementById('taskForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      
+
+      if (easyMDE) {
+        easyMDE.codemirror.save();
+      }
+
       const formData = new FormData(e.target);
       const executionDurationValue = formData.get('executionDuration');
       const executionDuration = executionDurationValue ? parseInt(executionDurationValue, 10) : undefined;
-      
+
       const data = {
         title: formData.get('title'),
         description: formData.get('description'),
@@ -543,42 +627,50 @@ export class TaskEditorPanel {
 
     function renderSubtasks() {
       const container = document.getElementById('subtasksList');
-      container.innerHTML = subtasks.map((subtask, index) => \`
-        <div class="subtask-item" data-index="\${index}">
-          <input type="checkbox" 
-                 id="subtask-\${index}" 
-                 \${subtask.completed ? 'checked' : ''}
-                 onchange="toggleSubtask(\${index})">
-          <input type="text" 
-                 value="\${escapeHtml(subtask.title)}"
-                 onchange="updateSubtaskTitle(\${index}, this.value)">
-          <button type="button" onclick="removeSubtask(\${index})" class="btn-remove">✕</button>
-        </div>
-      \`).join('');
+      container.innerHTML = subtasks.map((subtask, index) => {
+        const checked = subtask.completed ? 'checked' : '';
+        return '<div class="subtask-item" data-index="' + index + '">' +
+          '<input type="checkbox" id="subtask-' + index + '" ' + checked + ' onchange="toggleSubtask(' + index + ')">' +
+          '<input type="text" value="' + escapeHtml(subtask.title) + '" onchange="updateSubtaskTitle(' + index + ', this.value)">' +
+          '<button type="button" onclick="removeSubtask(' + index + ')" class="btn-remove">✕</button>' +
+          '</div>';
+      }).join('');
     }
 
     function escapeHtml(text) {
       const div = document.createElement('div');
-      div.textContent = text;
+      div.textContent = text ?? '';
       return div.innerHTML;
     }
-  </script>
+  </` +
+      `script>
 </body>
-</html>`;
+</html>`
+    );
   }
 
   /**
    * Экранирование HTML
    */
   private escapeHtml(text: string): string {
-    const map: { [key: string]: string } = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
+    return text.replace(/[&<>"']/g, (m) => {
+      if (m === "&") {
+        return "&amp;";
+      }
+      if (m === "<") {
+        return "&lt;";
+      }
+      if (m === ">") {
+        return "&gt;";
+      }
+      if (m === '"') {
+        return "&quot;";
+      }
+      if (m === "'") {
+        return "&#039;";
+      }
+      return m;
+    });
   }
 
   /**

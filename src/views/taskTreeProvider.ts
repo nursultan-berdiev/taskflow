@@ -54,6 +54,10 @@ export class TaskTreeItem extends vscode.TreeItem {
       tooltip += `\nПрогресс: ${progress.completed}/${progress.total} (${progress.percentage}%)\n`;
     }
 
+    if (this.task.result) {
+      tooltip += `\n✅ Результат: ${this.task.result}\n`;
+    }
+
     if (this.task.description) {
       tooltip += `\nОписание:\n${this.task.description}`;
     }
@@ -175,8 +179,9 @@ export class TaskTreeProvider
   private filterPriority: Priority | null = null;
 
   // Настройка Drag & Drop
-  dropMimeTypes = ["application/vnd.code.tree.taskflow"];
-  dragMimeTypes = ["application/vnd.code.tree.taskflow"];
+  // Не принимаем drop в панели задач (только из неё можно перетаскивать)
+  dropMimeTypes = [];
+  dragMimeTypes = ["application/vnd.code.tree.taskflow.tasksview"];
 
   constructor(private taskManager: TaskManager) {
     // Подписка на изменения задач
@@ -202,7 +207,7 @@ export class TaskTreeProvider
       // Сохраняем ID задач для передачи
       const taskIds = tasks.map((item) => item.task.id);
       dataTransfer.set(
-        "application/vnd.code.tree.taskflow",
+        "application/vnd.code.tree.taskflow.tasksview",
         new vscode.DataTransferItem(taskIds)
       );
     }

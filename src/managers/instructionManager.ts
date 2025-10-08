@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from "uuid";
 export class InstructionManager {
   private instructions: Map<string, Instruction> = new Map();
   private instructionsDir: string | undefined;
+  private templatesDir: string | undefined;
+  private currentLocale: string = "ru"; // По умолчанию русский
   private fileWatcher: vscode.FileSystemWatcher | undefined;
 
   private readonly _onInstructionsChanged = new vscode.EventEmitter<
@@ -17,7 +19,22 @@ export class InstructionManager {
   >();
   public readonly onInstructionsChanged = this._onInstructionsChanged.event;
 
-  constructor(private context: vscode.ExtensionContext) {}
+  constructor(private context: vscode.ExtensionContext) {
+    // Определяем локаль из настроек VS Code
+    this.currentLocale = this.detectLocale();
+  }
+
+  /**
+   * Определение локали пользователя
+   */
+  private detectLocale(): string {
+    const vscodeLocale = vscode.env.language;
+    // Поддерживаем только ru и en
+    if (vscodeLocale.startsWith("ru")) {
+      return "ru";
+    }
+    return "en";
+  }
 
   /**
    * Инициализация менеджера инструкций
@@ -29,16 +46,28 @@ export class InstructionManager {
     }
 
     const workspacePath = workspaceFolders[0].uri.fsPath;
+    const taskFlowDir = path.join(workspacePath, ".github", ".task_flow");
+
+    // Новая структура: .github/.task_flow/.templates/.instructions/{locale}/
+    this.templatesDir = path.join(taskFlowDir, ".templates");
     this.instructionsDir = path.join(
-      workspacePath,
-      ".github",
-      ".task_flow",
-      ".instructions"
+      this.templatesDir,
+      ".instructions",
+      this.currentLocale
     );
 
-    // Создание директории для инструкций если её нет
+    // Создание директорий для инструкций обоих языков
     try {
       await fs.mkdir(this.instructionsDir, { recursive: true });
+
+      // Создаем папки для обоих языков
+      const ruDir = path.join(this.templatesDir, ".instructions", "ru");
+      const enDir = path.join(this.templatesDir, ".instructions", "en");
+      await fs.mkdir(ruDir, { recursive: true });
+      await fs.mkdir(enDir, { recursive: true });
+
+      // Копируем шаблоны если они еще не созданы
+      await this.copyDefaultTemplates();
     } catch (error) {
       console.error("Ошибка при создании директории для инструкций:", error);
     }
@@ -48,6 +77,89 @@ export class InstructionManager {
 
     // Настройка наблюдателя за изменениями
     this.setupFileWatcher();
+  }
+
+  /**
+   * Копирование шаблонов инструкций по умолчанию
+   */
+  private async copyDefaultTemplates(): Promise<void> {
+    if (!this.templatesDir) {
+      return;
+    }
+
+    const templates = [
+      { name: "JS.md", locale: ["ru", "en"] },
+      { name: "Python.md", locale: ["ru", "en"] },
+      { name: "Research.md", locale: ["ru", "en"] },
+    ];
+
+    for (const template of templates) {
+      for (const locale of template.locale) {
+        const targetPath = path.join(
+          this.templatesDir,
+          ".instructions",
+          locale,
+          template.name
+        );
+
+        // Проверяем, существует ли уже файл
+        try {
+          await fs.access(targetPath);
+          // Файл существует, не копируем
+          continue;
+        } catch {
+          // Файл не существует, создаем его
+        }
+
+        // Получаем содержимое шаблона
+        const content = await this.getDefaultTemplateContent(
+          template.name.replace(".md", ""),
+          locale
+        );
+
+        if (content) {
+          try {
+            await fs.writeFile(targetPath, content, "utf-8");
+          } catch (error) {
+            console.error(
+              `Ошибка при создании шаблона ${template.name} для ${locale}:`,
+              error
+            );
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Получение содержимого шаблона по умолчанию из папки resources
+   */
+  private async getDefaultTemplateContent(
+    templateName: string,
+    locale: string
+  ): Promise<string | null> {
+    try {
+      // Путь к шаблону в папке resources расширения
+      const extensionPath = this.context.extensionPath;
+      const templatePath = path.join(
+        extensionPath,
+        "resources",
+        "templates",
+        "instructions",
+        locale,
+        `${templateName}.md`
+      );
+
+      // Читаем файл шаблона
+      const content = await fs.readFile(templatePath, "utf-8");
+      return content;
+    } catch (error) {
+      console.error(
+        `Ошибка при чтении шаблона ${templateName} для локали ${locale}:`,
+        error
+      );
+      return null;
+    }
   }
 
   /**

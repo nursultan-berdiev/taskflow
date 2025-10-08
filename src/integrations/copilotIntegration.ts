@@ -9,12 +9,26 @@ export class CopilotIntegration {
   private copilotAvailable: boolean = false;
   private currentTimer: NodeJS.Timeout | null = null;
   private currentTaskId: string | null = null;
+  private statusBarItem: vscode.StatusBarItem | null = null;
+  private progressInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private context: vscode.ExtensionContext,
     private instructionManager: InstructionManager
   ) {
     this.checkCopilotAvailability();
+    this.createStatusBarItem();
+  }
+
+  /**
+   * Создание элемента статус-бара для отображения прогресса
+   */
+  private createStatusBarItem(): void {
+    this.statusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      100
+    );
+    this.context.subscriptions.push(this.statusBarItem);
   }
 
   /**
@@ -25,6 +39,15 @@ export class CopilotIntegration {
       clearTimeout(this.currentTimer);
       this.currentTimer = null;
       this.currentTaskId = null;
+    }
+
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = null;
+    }
+
+    if (this.statusBarItem) {
+      this.statusBarItem.hide();
     }
   }
 
@@ -142,7 +165,24 @@ export class CopilotIntegration {
       }
     }
 
-    return userChoice === "✅ Завершить задачу";
+    const isCompleted = userChoice === "✅ Завершить задачу";
+
+    // Если задача завершена, запрашиваем результат
+    if (isCompleted) {
+      const result = await vscode.window.showInputBox({
+        prompt: "Опишите результат выполнения задачи (опционально)",
+        placeHolder:
+          "Например: Добавлен новый компонент UserProfile, обновлена документация",
+        ignoreFocusOut: true,
+      });
+
+      // Сохраняем результат в задачу
+      if (result) {
+        task.result = result;
+      }
+    }
+
+    return isCompleted;
   }
 
   /**
@@ -157,70 +197,116 @@ export class CopilotIntegration {
     const durationMs = durationMinutes * 60 * 1000;
 
     this.currentTaskId = task.id;
-    let startTime = Date.now();
+    const startTime = Date.now();
     let isCompleted = false;
-    let userAction: "complete" | "skip" | null = null;
 
     // Функция для форматирования оставшегося времени
     const formatTime = (ms: number): string => {
       const minutes = Math.floor(ms / 60000);
       const seconds = Math.floor((ms % 60000) / 1000);
-      return minutes > 0 ? `${minutes} мин` : `${seconds} сек`;
+      return minutes > 0 ? `${minutes} мин ${seconds} сек` : `${seconds} сек`;
     };
 
-    // Создаем Promise для таймера и Promise для действий пользователя
-    const timerPromise = new Promise<boolean>((resolve) => {
-      // Показываем первое уведомление с прогрессом
-      let currentNotification: Thenable<string | undefined> | null = null;
+    // Функция для обновления статус-бара
+    const updateStatusBar = () => {
+      if (
+        isCompleted ||
+        this.currentTaskId !== task.id ||
+        !this.statusBarItem
+      ) {
+        return;
+      }
 
-      const showProgressNotification = () => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, durationMs - elapsed);
+      const remainingFormatted = formatTime(remaining);
+      const percentage = Math.round((elapsed / durationMs) * 100);
+
+      this.statusBarItem.text = `⏱️ ${task.title.substring(
+        0,
+        30
+      )}... (${remainingFormatted})`;
+      this.statusBarItem.tooltip = `Задача: ${task.title}\nОсталось: ${remainingFormatted}\nПрогресс: ${percentage}%`;
+      this.statusBarItem.show();
+    };
+
+    // Создаем Promise для таймера
+    const timerPromise = new Promise<boolean>((resolve) => {
+      let oneMinuteNotificationShown = false;
+
+      // Функция для показа уведомления с кнопками
+      const showNotification = (message: string) => {
         if (isCompleted || this.currentTaskId !== task.id) {
           return;
         }
 
-        const elapsed = Date.now() - startTime;
-        const remaining = Math.max(0, durationMs - elapsed);
-        const remainingFormatted = formatTime(remaining);
-
-        currentNotification = vscode.window.showInformationMessage(
-          `⏱️ Автоматическое выполнение: ${remainingFormatted} осталось\n` +
-            `Задача: "${task.title}"\n\n` +
-            `Задача завершится автоматически через ${remainingFormatted}`,
-          { modal: false },
-          "✅ Завершить сейчас",
-          "⏭️ Пропустить"
-        );
-
-        currentNotification.then((choice) => {
-          if (choice === "✅ Завершить сейчас") {
-            userAction = "complete";
-            isCompleted = true;
-            this.cancelCurrentTimer();
-            resolve(true);
-          } else if (choice === "⏭️ Пропустить") {
-            userAction = "skip";
-            isCompleted = true;
-            this.cancelCurrentTimer();
-            resolve(false);
-          }
-        });
+        vscode.window
+          .showInformationMessage(
+            message,
+            { modal: false },
+            "✅ Завершить сейчас",
+            "⏭️ Пропустить"
+          )
+          .then((choice) => {
+            if (choice === "✅ Завершить сейчас") {
+              isCompleted = true;
+              this.cancelCurrentTimer();
+              resolve(true);
+            } else if (choice === "⏭️ Пропустить") {
+              isCompleted = true;
+              this.cancelCurrentTimer();
+              resolve(false);
+            }
+          });
       };
 
-      // Показываем уведомление каждые 30 секунд
-      const notificationInterval = setInterval(() => {
-        showProgressNotification();
-      }, 30000);
+      // Показываем начальное уведомление
+      showNotification(
+        `⏱️ Автоматическое выполнение задачи началось\n` +
+          `Задача: "${task.title}"\n` +
+          `Время выполнения: ${durationMinutes} мин`
+      );
 
-      // Показываем первое уведомление сразу
-      showProgressNotification();
+      // Обновляем статус-бар каждые 5 секунд
+      updateStatusBar(); // Первое обновление сразу
+      this.progressInterval = setInterval(() => {
+        if (isCompleted || this.currentTaskId !== task.id) {
+          return;
+        }
+
+        updateStatusBar();
+
+        // Показываем уведомление за 1 минуту до завершения
+        const elapsed = Date.now() - startTime;
+        const remaining = durationMs - elapsed;
+
+        if (
+          remaining <= 60000 &&
+          remaining > 55000 &&
+          !oneMinuteNotificationShown
+        ) {
+          oneMinuteNotificationShown = true;
+          showNotification(
+            `⏱️ Осталась 1 минута до завершения\n` + `Задача: "${task.title}"`
+          );
+        }
+      }, 5000); // Обновляем каждые 5 секунд
 
       // Основной таймер для автоматического завершения
       this.currentTimer = setTimeout(() => {
-        clearInterval(notificationInterval);
+        if (this.progressInterval) {
+          clearInterval(this.progressInterval);
+          this.progressInterval = null;
+        }
+
         if (!isCompleted) {
           isCompleted = true;
           this.currentTimer = null;
           this.currentTaskId = null;
+
+          if (this.statusBarItem) {
+            this.statusBarItem.hide();
+          }
 
           vscode.window.showInformationMessage(
             `✅ Задача автоматически завершена: "${task.title}"\n\n` +
@@ -230,13 +316,6 @@ export class CopilotIntegration {
           resolve(true);
         }
       }, durationMs);
-
-      // Сохраняем интервал для очистки
-      this.context.subscriptions.push({
-        dispose: () => {
-          clearInterval(notificationInterval);
-        },
-      });
     });
 
     return await timerPromise;
@@ -296,6 +375,10 @@ export class CopilotIntegration {
     if (task.subtasks && task.subtasks.length > 0) {
       prompt += `\n\nОбрати внимание на подзадачи - они описывают шаги реализации.`;
     }
+
+    // Информация о результатах
+    prompt += `\n\n---\n`;
+    prompt += `📝 **Результаты выполнения**: После завершения задачи вы сможете записать краткий результат, который будет сохранён в системе задач и доступен для просмотра в панели задач.`;
 
     return prompt;
   }
@@ -591,5 +674,85 @@ DESCRIPTION: [детальное описание задачи, можно не�
       );
       return null;
     }
+  }
+
+  /**
+   * Генерация текста задачи из промпта пользователя через AI
+   * Специально для использования в редакторе задач
+   */
+  public async generateTaskDescriptionFromPrompt(
+    userPrompt: string
+  ): Promise<string | null> {
+    const models = await vscode.lm.selectChatModels({
+      vendor: "copilot",
+      family: "gpt-4o",
+    });
+
+    if (models.length === 0) {
+      vscode.window.showWarningMessage(
+        "Language Model API недоступен. Убедитесь, что GitHub Copilot активен."
+      );
+      return null;
+    }
+
+    const model = models[0];
+
+    const systemPrompt = `Ты — помощник для создания технических заданий для разработки.
+
+Пользователь описывает что нужно сделать. Твоя задача — преобразовать это в структурированное техническое задание.
+
+Формат технического задания:
+## Описание
+[Краткое описание задачи]
+
+## Цели
+- [Цель 1]
+- [Цель 2]
+
+## Требования
+- [Требование 1]
+- [Требование 2]
+
+## Технические детали
+[Описание технической реализации]
+
+## Критерии завершения
+- [ ] [Критерий 1]
+- [ ] [Критерий 2]
+
+Будь конкретным, структурированным и ориентируйся на разработку ПО.
+
+Запрос пользователя: "${userPrompt}"`;
+
+    return await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "🤖 AI генерирует техническое задание...",
+        cancellable: true,
+      },
+      async (progress, token) => {
+        try {
+          const messages = [vscode.LanguageModelChatMessage.User(systemPrompt)];
+          const response = await model.sendRequest(messages, {}, token);
+
+          let fullResponse = "";
+          for await (const chunk of response.text) {
+            fullResponse += chunk;
+            if (token.isCancellationRequested) {
+              return null;
+            }
+          }
+
+          return fullResponse.trim();
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Ошибка при генерации через AI: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+          return null;
+        }
+      }
+    );
   }
 }

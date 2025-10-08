@@ -7,7 +7,8 @@ import { CompletedTasksTreeProvider } from "./views/completedTasksTreeProvider";
 import { InstructionTreeProvider } from "./views/instructionTreeProvider";
 import { TaskEditorPanel } from "./views/taskEditorPanel";
 import { CopilotIntegration } from "./integrations/copilotIntegration";
-import { Task, Priority, TaskStatus } from "./models/task";
+import { Task, Priority, TaskStatus, ProgressStats } from "./models/task";
+import { Instruction } from "./models/instruction";
 import { ApiTaskImporter } from "./services/apiTaskImporter";
 
 /**
@@ -272,8 +273,10 @@ function registerCommands(
         try {
           await taskManager.addToQueue(item.task.id);
           // Уведомление убрано - задача появится в очереди
-        } catch (error: any) {
-          vscode.window.showErrorMessage(error.message);
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : String(error)
+          );
         }
       }
     })
@@ -288,8 +291,10 @@ function registerCommands(
           try {
             await taskManager.removeFromQueue(item.task.id);
             // Уведомление убрано - задача исчезнет из очереди
-          } catch (error: any) {
-            vscode.window.showErrorMessage(error.message);
+          } catch (error) {
+            vscode.window.showErrorMessage(
+              error instanceof Error ? error.message : String(error)
+            );
           }
         }
       }
@@ -317,8 +322,10 @@ function registerCommands(
           try {
             await taskManager.moveInQueue(item.task.id, parseInt(newPosition));
             // Уведомление убрано - новая позиция видна в очереди
-          } catch (error: any) {
-            vscode.window.showErrorMessage(error.message);
+          } catch (error) {
+            vscode.window.showErrorMessage(
+              error instanceof Error ? error.message : String(error)
+            );
           }
         }
       }
@@ -332,7 +339,6 @@ function registerCommands(
         const nextTask = await taskManager.startNextInQueue();
         if (nextTask) {
           const taskId = nextTask.id;
-          const taskTitle = nextTask.title;
 
           // Уведомление убрано - Copilot откроется автоматически
 
@@ -354,8 +360,10 @@ function registerCommands(
             }
           }
         }
-      } catch (error: any) {
-        vscode.window.showErrorMessage(error.message);
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          error instanceof Error ? error.message : String(error)
+        );
       }
     })
   );
@@ -371,9 +379,6 @@ function registerCommands(
               item.task.id
             );
             if (nextTask) {
-              const nextTaskId = nextTask.id;
-              const nextTaskTitle = nextTask.title;
-
               // Уведомление убрано - следующая задача откроется в Copilot
 
               // Автоматически запустить генерацию кода через Copilot для следующей задачи
@@ -383,9 +388,9 @@ function registerCommands(
               // Если пользователь подтвердил завершение, автоматически завершить следующую задачу
               if (shouldComplete) {
                 // Получаем свежий объект задачи
-                const currentTask = taskManager.getTaskById(nextTaskId);
+                const currentTask = taskManager.getTaskById(nextTask.id);
                 if (currentTask) {
-                  await taskManager.updateTask(nextTaskId, {
+                  await taskManager.updateTask(nextTask.id, {
                     ...currentTask,
                     status: TaskStatus.Completed,
                   });
@@ -395,8 +400,10 @@ function registerCommands(
             } else {
               // Уведомление убрано - завершение видно в UI
             }
-          } catch (error: any) {
-            vscode.window.showErrorMessage(error.message);
+          } catch (error) {
+            vscode.window.showErrorMessage(
+              error instanceof Error ? error.message : String(error)
+            );
           }
         }
       }
@@ -412,7 +419,6 @@ function registerCommands(
           try {
             const task = item.task;
             const taskId = task.id;
-            const taskTitle = task.title;
 
             // Запустить генерацию кода через Copilot
             const shouldComplete = await copilotIntegration.generateCodeForTask(
@@ -431,8 +437,10 @@ function registerCommands(
                 // Уведомление убрано - завершение видно в UI
               }
             }
-          } catch (error: any) {
-            vscode.window.showErrorMessage(error.message);
+          } catch (error) {
+            vscode.window.showErrorMessage(
+              error instanceof Error ? error.message : String(error)
+            );
           }
         }
       }
@@ -561,11 +569,19 @@ function registerCommands(
 
               // Небольшая задержка между задачами
               await new Promise((resolve) => setTimeout(resolve, 1000));
-            } catch (taskError: any) {
+            } catch (taskError) {
               errorCount++;
               const errorMsg = taskTitle
-                ? `Ошибка при выполнении задачи "${taskTitle}": ${taskError.message}`
-                : `Ошибка при выполнении задачи: ${taskError.message}`;
+                ? `Ошибка при выполнении задачи "${taskTitle}": ${
+                    taskError instanceof Error
+                      ? taskError.message
+                      : String(taskError)
+                  }`
+                : `Ошибка при выполнении задачи: ${
+                    taskError instanceof Error
+                      ? taskError.message
+                      : String(taskError)
+                  }`;
               vscode.window.showErrorMessage(errorMsg);
               // Продолжаем выполнение остальных задач
               continue;
@@ -582,9 +598,11 @@ function registerCommands(
               `Выполнение очереди завершено с ошибками. Выполнено: ${completedCount}, ошибок: ${errorCount}`
             );
           }
-        } catch (error: any) {
+        } catch (error) {
           vscode.window.showErrorMessage(
-            `Критическая ошибка при выполнении очереди: ${error.message}`
+            `Критическая ошибка при выполнении очереди: ${
+              error instanceof Error ? error.message : String(error)
+            }`
           );
         }
       }
@@ -655,9 +673,11 @@ function registerCommands(
         vscode.window.showInformationMessage(
           `Инструкция "${instruction.name}" создана`
         );
-      } catch (error: any) {
+      } catch (error) {
         vscode.window.showErrorMessage(
-          `Ошибка при создании инструкции: ${error.message}`
+          `Ошибка при создании инструкции: ${
+            error instanceof Error ? error.message : String(error)
+          }`
         );
       }
     })
@@ -706,9 +726,11 @@ function registerCommands(
 
         try {
           await instructionManager.openInstruction(instruction.id);
-        } catch (error: any) {
+        } catch (error) {
           vscode.window.showErrorMessage(
-            `Ошибка при открытии инструкции: ${error.message}`
+            `Ошибка при открытии инструкции: ${
+              error instanceof Error ? error.message : String(error)
+            }`
           );
         }
       }
@@ -748,9 +770,11 @@ function registerCommands(
           vscode.window.showInformationMessage(
             `Инструкция "${instruction.name}" удалена`
           );
-        } catch (error: any) {
+        } catch (error) {
           vscode.window.showErrorMessage(
-            `Ошибка при удалении инструкции: ${error.message}`
+            `Ошибка при удалении инструкции: ${
+              error instanceof Error ? error.message : String(error)
+            }`
           );
         }
       }
@@ -798,9 +822,11 @@ function registerCommands(
           vscode.window.showInformationMessage(
             `Инструкция "${selected.instruction.name}" назначена задаче "${task.title}"`
           );
-        } catch (error: any) {
+        } catch (error) {
           vscode.window.showErrorMessage(
-            `Ошибка при назначении инструкции: ${error.message}`
+            `Ошибка при назначении инструкции: ${
+              error instanceof Error ? error.message : String(error)
+            }`
           );
         }
       }
@@ -1006,7 +1032,7 @@ async function showAddTaskDialog(
     : undefined;
 
   // Создание задачи
-  const task = await taskManager.addTask({
+  await taskManager.addTask({
     title,
     description,
     category,
@@ -1018,124 +1044,6 @@ async function showAddTaskDialog(
   });
 
   // Уведомление убрано - задача появится в списке
-}
-
-/**
- * Диалог редактирования задачи
- */
-async function showEditTaskDialog(
-  taskManager: TaskManager,
-  task: Task
-): Promise<void> {
-  const action = await vscode.window.showQuickPick(
-    [
-      { label: "📝 Изменить название", value: "title" },
-      { label: "📄 Изменить описание", value: "description" },
-      { label: "📁 Изменить категорию", value: "category" },
-      { label: "⚡ Изменить приоритет", value: "priority" },
-      { label: "📅 Изменить срок", value: "dueDate" },
-      { label: "🔄 Изменить статус", value: "status" },
-    ],
-    { placeHolder: "Что вы хотите изменить?" }
-  );
-
-  if (!action) {
-    return;
-  }
-
-  switch (action.value) {
-    case "title":
-      const newTitle = await vscode.window.showInputBox({
-        prompt: "Введите новое название",
-        value: task.title,
-      });
-      if (newTitle) {
-        await taskManager.updateTask(task.id, { title: newTitle });
-      }
-      break;
-
-    case "description":
-      const newDescription = await vscode.window.showInputBox({
-        prompt: "Введите новое описание",
-        value: task.description,
-      });
-      if (newDescription !== undefined) {
-        await taskManager.updateTask(task.id, { description: newDescription });
-      }
-      break;
-
-    case "category":
-      const categories = taskManager.getCategories();
-      const categoryItem = await vscode.window.showQuickPick(
-        [
-          { label: "$(add) Создать новую", value: "__new__" },
-          { label: "$(close) Убрать категорию", value: "__none__" },
-          ...categories.map((cat) => ({ label: cat, value: cat })),
-        ],
-        { placeHolder: "Выберите категорию" }
-      );
-
-      if (categoryItem) {
-        if (categoryItem.value === "__new__") {
-          const newCategory = await vscode.window.showInputBox({
-            prompt: "Введите название категории",
-          });
-          if (newCategory) {
-            await taskManager.updateTask(task.id, { category: newCategory });
-          }
-        } else if (categoryItem.value === "__none__") {
-          await taskManager.updateTask(task.id, { category: undefined });
-        } else {
-          await taskManager.updateTask(task.id, {
-            category: categoryItem.value,
-          });
-        }
-      }
-      break;
-
-    case "priority":
-      const priorityItem = await vscode.window.showQuickPick(
-        [
-          { label: "🔴 Высокий", value: Priority.High },
-          { label: "🟡 Средний", value: Priority.Medium },
-          { label: "🟢 Низкий", value: Priority.Low },
-        ],
-        { placeHolder: "Выберите приоритет" }
-      );
-      if (priorityItem) {
-        await taskManager.updateTask(task.id, { priority: priorityItem.value });
-      }
-      break;
-
-    case "dueDate":
-      const dueDateStr = await vscode.window.showInputBox({
-        prompt: "Введите срок выполнения",
-        placeHolder: "ГГГГ-ММ-ДД",
-        value: task.dueDate?.toISOString().split("T")[0],
-      });
-      if (dueDateStr) {
-        await taskManager.updateTask(task.id, {
-          dueDate: new Date(dueDateStr),
-        });
-      }
-      break;
-
-    case "status":
-      const statusItem = await vscode.window.showQuickPick(
-        [
-          { label: "⏳ Ожидает", value: TaskStatus.Pending },
-          { label: "🔄 В процессе", value: TaskStatus.InProgress },
-          { label: "✅ Завершено", value: TaskStatus.Completed },
-        ],
-        { placeHolder: "Выберите статус" }
-      );
-      if (statusItem) {
-        await taskManager.updateTask(task.id, { status: statusItem.value });
-      }
-      break;
-  }
-
-  vscode.window.showInformationMessage("Задача обновлена");
 }
 
 /**
@@ -1162,7 +1070,7 @@ async function showTaskDetailsPanel(
 /**
  * Генерация HTML для панели деталей задачи
  */
-function getTaskDetailsHtml(task: Task, progress: any): string {
+function getTaskDetailsHtml(task: Task, progress: ProgressStats): string {
   return `
 <!DOCTYPE html>
 <html lang="ru">
@@ -1298,6 +1206,17 @@ function getTaskDetailsHtml(task: Task, progress: any): string {
   }
   
   ${
+    task.result
+      ? `
+    <div class="description" style="border-left-color: #89d185;">
+      <h3>✅ Результат выполнения:</h3>
+      ${task.result}
+    </div>
+  `
+      : ""
+  }
+  
+  ${
     task.description
       ? `
     <div class="description">
@@ -1343,7 +1262,7 @@ function showWelcomeMessage(context: vscode.ExtensionContext): void {
 /**
  * Генерация HTML для webview просмотра инструкции
  */
-function getInstructionWebviewContent(instruction: any): string {
+function getInstructionWebviewContent(instruction: Instruction): string {
   return `<!DOCTYPE html>
 <html lang="ru">
 <head>
