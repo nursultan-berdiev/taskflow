@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import axios, { AxiosInstance, AxiosError } from "axios";
 import {
   YouTrackIssue,
-  YouTrackIssuesResponse,
   YouTrackConfig,
   YouTrackConfigValidation,
   YouTrackCustomField,
@@ -50,7 +49,8 @@ export class YouTrackIntegration {
    * Загрузка конфигурации из настроек VS Code
    */
   private async loadConfiguration(): Promise<YouTrackConfigValidation> {
-    const configuration = vscode.workspace.getConfiguration("taskflow.youtrack");
+    const configuration =
+      vscode.workspace.getConfiguration("taskflow.youtrack");
 
     const baseUrl = configuration.get<string>("baseUrl");
     const token = configuration.get<string>("token");
@@ -60,14 +60,16 @@ export class YouTrackIntegration {
     if (!baseUrl || baseUrl.trim() === "") {
       return {
         isValid: false,
-        error: "URL YouTrack не указан. Укажите его в настройках: taskflow.youtrack.baseUrl",
+        error:
+          "URL YouTrack не указан. Укажите его в настройках: taskflow.youtrack.baseUrl",
       };
     }
 
     if (!token || token.trim() === "") {
       return {
         isValid: false,
-        error: "Токен YouTrack не указан. Укажите его в настройках: taskflow.youtrack.token",
+        error:
+          "Токен YouTrack не указан. Укажите его в настройках: taskflow.youtrack.token",
       };
     }
 
@@ -86,7 +88,9 @@ export class YouTrackIntegration {
    */
   public async importIssues(): Promise<Task[]> {
     if (!this.axiosInstance || !this.config) {
-      throw new Error("YouTrack не инициализирован. Вызовите initialize() сначала.");
+      throw new Error(
+        "YouTrack не инициализирован. Вызовите initialize() сначала."
+      );
     }
 
     return await vscode.window.withProgress(
@@ -104,7 +108,7 @@ export class YouTrackIntegration {
 
           progress.report({ message: "Загрузка задач..." });
 
-          const response = await this.axiosInstance!.get<YouTrackIssuesResponse>(
+          const response = await this.axiosInstance!.get<YouTrackIssue[]>(
             "/api/issues",
             {
               params: {
@@ -115,9 +119,14 @@ export class YouTrackIntegration {
             }
           );
 
-          progress.report({ message: `Обработка ${response.data.issues.length} задач...` });
+          // YouTrack API возвращает массив задач напрямую
+          const issues = Array.isArray(response.data) ? response.data : [];
 
-          const tasks = response.data.issues.map((issue) =>
+          progress.report({
+            message: `Обработка ${issues.length} задач...`,
+          });
+
+          const tasks = issues.map((issue) =>
             this.mapYouTrackIssueToTask(issue)
           );
 
@@ -188,7 +197,9 @@ export class YouTrackIntegration {
    */
   private mapStatus(customFields?: YouTrackCustomField[]): TaskStatus {
     const stateField = customFields?.find(
-      (field) => field.name.toLowerCase() === "state" || field.name.toLowerCase() === "статус"
+      (field) =>
+        field.name.toLowerCase() === "state" ||
+        field.name.toLowerCase() === "статус"
     );
 
     if (!stateField?.value?.name) {
@@ -219,7 +230,8 @@ export class YouTrackIntegration {
   private mapPriority(customFields?: YouTrackCustomField[]): Priority {
     const priorityField = customFields?.find(
       (field) =>
-        field.name.toLowerCase() === "priority" || field.name.toLowerCase() === "приоритет"
+        field.name.toLowerCase() === "priority" ||
+        field.name.toLowerCase() === "приоритет"
     );
 
     if (!priorityField?.value?.name) {
@@ -251,9 +263,13 @@ export class YouTrackIntegration {
   /**
    * Извлечение категории из кастомных полей
    */
-  private extractCategory(customFields?: YouTrackCustomField[]): string | undefined {
+  private extractCategory(
+    customFields?: YouTrackCustomField[]
+  ): string | undefined {
     const typeField = customFields?.find(
-      (field) => field.name.toLowerCase() === "type" || field.name.toLowerCase() === "тип"
+      (field) =>
+        field.name.toLowerCase() === "type" ||
+        field.name.toLowerCase() === "тип"
     );
 
     return typeField?.value?.name;
@@ -295,13 +311,18 @@ export class YouTrackIntegration {
         console.error("YouTrack Network Error:", axiosError.message);
       } else {
         // Ошибка при настройке запроса
-        vscode.window.showErrorMessage(`Ошибка запроса к YouTrack: ${axiosError.message}`);
+        vscode.window.showErrorMessage(
+          `Ошибка запроса к YouTrack: ${axiosError.message}`
+        );
         console.error("YouTrack Request Error:", axiosError.message);
       }
     } else {
       // Неизвестная ошибка
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      vscode.window.showErrorMessage(`Неизвестная ошибка при импорте из YouTrack: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(
+        `Неизвестная ошибка при импорте из YouTrack: ${errorMessage}`
+      );
       console.error("YouTrack Unknown Error:", error);
     }
   }
@@ -311,12 +332,16 @@ export class YouTrackIntegration {
    */
   public async testConnection(): Promise<boolean> {
     if (!this.axiosInstance || !this.config) {
-      throw new Error("YouTrack не инициализирован. Вызовите initialize() сначала.");
+      throw new Error(
+        "YouTrack не инициализирован. Вызовите initialize() сначала."
+      );
     }
 
     try {
       await this.axiosInstance.get("/api/admin/timeTrackingSettings");
-      vscode.window.showInformationMessage("✅ Подключение к YouTrack успешно!");
+      vscode.window.showInformationMessage(
+        "✅ Подключение к YouTrack успешно!"
+      );
       return true;
     } catch (error) {
       this.handleError(error);
