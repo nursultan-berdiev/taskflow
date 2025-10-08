@@ -11,6 +11,7 @@ export class CopilotIntegration {
   private currentTaskId: string | null = null;
   private statusBarItem: vscode.StatusBarItem | null = null;
   private progressInterval: NodeJS.Timeout | null = null;
+  private currentNotificationResolve: ((value: boolean) => void) | null = null;
 
   constructor(
     private context: vscode.ExtensionContext,
@@ -49,6 +50,9 @@ export class CopilotIntegration {
     if (this.statusBarItem) {
       this.statusBarItem.hide();
     }
+
+    // Очистка ссылки на resolve уведомления
+    this.currentNotificationResolve = null;
   }
 
   /**
@@ -233,38 +237,59 @@ export class CopilotIntegration {
     // Создаем Promise для таймера
     const timerPromise = new Promise<boolean>((resolve) => {
       let oneMinuteNotificationShown = false;
+      this.currentNotificationResolve = resolve;
 
-      // Функция для показа уведомления с кнопками
-      const showNotification = (message: string) => {
+      // Функция для показа/обновления уведомления с кнопками
+      // Используем один Promise, который обрабатывает все уведомления
+      const showOrUpdateNotification = (
+        message: string,
+        isFirstTime: boolean = false
+      ) => {
         if (isCompleted || this.currentTaskId !== task.id) {
           return;
         }
 
-        vscode.window
-          .showInformationMessage(
-            message,
-            { modal: false },
-            "✅ Завершить сейчас",
-            "⏭️ Пропустить"
-          )
-          .then((choice) => {
-            if (choice === "✅ Завершить сейчас") {
-              isCompleted = true;
-              this.cancelCurrentTimer();
-              resolve(true);
-            } else if (choice === "⏭️ Пропустить") {
-              isCompleted = true;
-              this.cancelCurrentTimer();
-              resolve(false);
-            }
-          });
+        // Для первого уведомления или критического момента (1 минута) показываем новое
+        // В остальных случаях статус-бар достаточен
+        if (isFirstTime || message.includes("1 минута")) {
+          vscode.window
+            .showInformationMessage(
+              message,
+              { modal: false },
+              "✅ Завершить сейчас",
+              "⏭️ Пропустить"
+            )
+            .then((choice) => {
+              if (
+                choice === "✅ Завершить сейчас" &&
+                this.currentNotificationResolve
+              ) {
+                isCompleted = true;
+                this.cancelCurrentTimer();
+                const resolveFunc = this.currentNotificationResolve;
+                this.currentNotificationResolve = null;
+                resolveFunc(true);
+              } else if (
+                choice === "⏭️ Пропустить" &&
+                this.currentNotificationResolve
+              ) {
+                isCompleted = true;
+                this.cancelCurrentTimer();
+                const resolveFunc = this.currentNotificationResolve;
+                this.currentNotificationResolve = null;
+                resolveFunc(false);
+              }
+            });
+        }
       };
 
-      // Показываем начальное уведомление
-      showNotification(
+      // Показываем начальное уведомление (единственное в начале)
+      showOrUpdateNotification(
         `⏱️ Автоматическое выполнение задачи началось\n` +
           `Задача: "${task.title}"\n` +
-          `Время выполнения: ${durationMinutes} мин`
+          `Время выполнения: ${durationMinutes} мин\n\n` +
+          `Прогресс отображается в статус-баре внизу экрана`,
+        true
       );
 
       // Обновляем статус-бар каждые 5 секунд
@@ -276,7 +301,7 @@ export class CopilotIntegration {
 
         updateStatusBar();
 
-        // Показываем уведомление за 1 минуту до завершения
+        // Показываем уведомление за 1 минуту до завершения (единственное предупреждение)
         const elapsed = Date.now() - startTime;
         const remaining = durationMs - elapsed;
 
@@ -286,8 +311,10 @@ export class CopilotIntegration {
           !oneMinuteNotificationShown
         ) {
           oneMinuteNotificationShown = true;
-          showNotification(
-            `⏱️ Осталась 1 минута до завершения\n` + `Задача: "${task.title}"`
+          showOrUpdateNotification(
+            `⏱️ Осталась 1 минута до завершения\n` +
+              `Задача: "${task.title}"\n\n` +
+              `Нажмите кнопку для завершения или пропуска`
           );
         }
       }, 5000); // Обновляем каждые 5 секунд
@@ -299,7 +326,7 @@ export class CopilotIntegration {
           this.progressInterval = null;
         }
 
-        if (!isCompleted) {
+        if (!isCompleted && this.currentNotificationResolve) {
           isCompleted = true;
           this.currentTimer = null;
           this.currentTaskId = null;
@@ -308,12 +335,15 @@ export class CopilotIntegration {
             this.statusBarItem.hide();
           }
 
+          // Финальное уведомление (единственное при завершении)
           vscode.window.showInformationMessage(
             `✅ Задача автоматически завершена: "${task.title}"\n\n` +
               `Начинается следующая задача...`
           );
 
-          resolve(true);
+          const resolveFunc = this.currentNotificationResolve;
+          this.currentNotificationResolve = null;
+          resolveFunc(true);
         }
       }, durationMs);
     });
@@ -681,7 +711,8 @@ DESCRIPTION: [детальное описание задачи, можно не�
    * Специально для использования в редакторе задач
    */
   public async generateTaskDescriptionFromPrompt(
-    userPrompt: string
+    userPrompt: string,
+    currentDescription?: string
   ): Promise<string | null> {
     const models = await vscode.lm.selectChatModels({
       vendor: "copilot",
@@ -711,12 +742,25 @@ DESCRIPTION: [детальное описание задачи, можно не�
 
           progress.report({ message: "Генерация технического задания..." });
 
+          // Формируем контекст текущего описания, если оно есть
+          const currentDescriptionContext =
+            currentDescription && currentDescription.trim().length > 0
+              ? `
+
+## Текущее описание задачи (которое нужно улучшить):
+\`\`\`
+${currentDescription}
+\`\`\`
+
+**ВАЖНО**: Используй текущее описание как основу. Дополни и улучши его на основе нового запроса пользователя, сохраняя уже существующую информацию и структуру.`
+              : "";
+
           const systemPrompt = `Ты — помощник для создания технических заданий для разработки.
 
 Пользователь описывает что нужно сделать. Твоя задача — преобразовать это в структурированное техническое задание.
 
 ## Контекст проекта:
-${projectContext}
+${projectContext}${currentDescriptionContext}
 
 ## Формат технического задания:
 ### Описание

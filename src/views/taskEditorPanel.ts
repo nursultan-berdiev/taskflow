@@ -53,7 +53,10 @@ export class TaskEditorPanel {
             await this.sendInstructions();
             break;
           case "generateAI":
-            await this.handleAIGeneration(message.prompt);
+            await this.handleAIGeneration(
+              message.prompt,
+              message.currentDescription
+            );
             break;
         }
       },
@@ -171,11 +174,11 @@ export class TaskEditorPanel {
   /**
    * Обработка генерации описания задачи через AI
    */
-  private async handleAIGeneration(userPrompt: string): Promise<void> {
-    console.log("handleAIGeneration called with prompt:", userPrompt);
-
+  private async handleAIGeneration(
+    userPrompt: string,
+    currentDescription?: string
+  ): Promise<void> {
     if (!userPrompt || userPrompt.trim().length === 0) {
-      console.log("Prompt is empty");
       this.panel.webview.postMessage({
         command: "aiError",
         error: "Промпт не может быть пустым",
@@ -184,13 +187,11 @@ export class TaskEditorPanel {
     }
 
     try {
-      console.log("Calling generateTaskDescriptionFromPrompt...");
       const generatedDescription =
         await this.copilotIntegration.generateTaskDescriptionFromPrompt(
-          userPrompt
+          userPrompt,
+          currentDescription
         );
-
-      console.log("Generated description:", generatedDescription);
 
       if (generatedDescription) {
         this.panel.webview.postMessage({
@@ -682,7 +683,6 @@ export class TaskEditorPanel {
     let subtasks = ${JSON.stringify(task.subtasks || [])};
 
     window.addEventListener('load', () => {
-      console.log('Window loaded');
       easyMDE = new EasyMDE({
         element: document.getElementById('description'),
         autoDownloadFontAwesome: false,
@@ -696,10 +696,7 @@ export class TaskEditorPanel {
       // Add event listener for AI generate button
       const aiGenerateBtn = document.querySelector('.btn-ai-generate');
       if (aiGenerateBtn) {
-        console.log('AI Generate button found, adding event listener');
         aiGenerateBtn.addEventListener('click', generateWithAI);
-      } else {
-        console.error('AI Generate button not found!');
       }
 
       vscode.postMessage({ command: 'loadInstructions' });
@@ -798,15 +795,10 @@ export class TaskEditorPanel {
     }
 
     function generateWithAI() {
-      console.log('generateWithAI called');
       const promptInput = document.getElementById('aiPrompt');
       const generateBtn = document.querySelector('.btn-ai-generate');
       const statusDiv = document.getElementById('aiStatus');
-      
-      console.log('Elements:', { promptInput, generateBtn, statusDiv });
-      
       const prompt = promptInput.value.trim();
-      console.log('Prompt:', prompt);
 
       if (!prompt) {
         statusDiv.className = 'ai-status error';
@@ -814,14 +806,17 @@ export class TaskEditorPanel {
         return;
       }
 
+      // Получаем текущее описание задачи из редактора
+      const currentDescription = easyMDE ? easyMDE.value() : '';
+
       statusDiv.className = 'ai-status loading';
       statusDiv.textContent = '🤖 AI анализирует проект и генерирует техническое задание...';
       generateBtn.disabled = true;
 
-      console.log('Sending message to vscode');
       vscode.postMessage({
         command: 'generateAI',
-        prompt: prompt
+        prompt: prompt,
+        currentDescription: currentDescription
       });
     }
 
