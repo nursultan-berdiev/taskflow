@@ -497,13 +497,21 @@ function registerCommands(
             // Добавляем задачи через TaskManager
             let importedCount = 0;
             let skippedCount = 0;
+            const allExistingTasks = taskManager.getTasks();
 
             for (const task of tasks) {
-              const existingTask = taskManager.getTaskById(task.id);
+              // Ищем дубликаты по ID, тегу и названию
+              const existingTask = youtrackIntegration.findDuplicateTask(
+                allExistingTasks,
+                task
+              );
 
               if (existingTask) {
                 // Задача уже существует - обновляем её
-                taskManager.updateTask(task.id, task);
+                taskManager.updateTask(existingTask.id, {
+                  ...task,
+                  id: existingTask.id, // Сохраняем оригинальный ID
+                });
                 skippedCount++;
               } else {
                 // Новая задача - добавляем

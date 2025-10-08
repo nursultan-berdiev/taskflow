@@ -84,6 +84,52 @@ export class YouTrackIntegration {
   }
 
   /**
+   * Поиск существующей задачи по тегу и названию
+   * @param allTasks Все существующие задачи
+   * @param newTask Новая задача для проверки
+   * @returns Найденная задача или undefined
+   */
+  public findDuplicateTask(
+    allTasks: Task[],
+    newTask: Task
+  ): Task | undefined {
+    return allTasks.find((existingTask) => {
+      // Проверка 1: По ID (если задача уже импортировалась с тем же ID)
+      if (existingTask.id === newTask.id) {
+        return true;
+      }
+
+      // Проверка 2: По тегу (если тег совпадает - это та же задача из YouTrack)
+      if (
+        newTask.tag &&
+        existingTask.tag &&
+        existingTask.tag.toLowerCase() === newTask.tag.toLowerCase()
+      ) {
+        return true;
+      }
+
+      // Проверка 3: По названию (если названия идентичны)
+      if (
+        existingTask.title.trim().toLowerCase() ===
+        newTask.title.trim().toLowerCase()
+      ) {
+        return true;
+      }
+
+      // Проверка 4: Если название содержит тег YouTrack в квадратных скобках
+      // Например: "[PROJECT-123] Task name" и тег "PROJECT-123"
+      if (newTask.tag) {
+        const tagPattern = new RegExp(`\\[${newTask.tag}\\]`, "i");
+        if (tagPattern.test(existingTask.title)) {
+          return true;
+        }
+      }
+
+      return false;
+    });
+  }
+
+  /**
    * Импорт задач из YouTrack
    */
   public async importIssues(): Promise<Task[]> {

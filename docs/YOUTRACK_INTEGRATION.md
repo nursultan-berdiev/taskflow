@@ -9,6 +9,7 @@
 ### 1. Типы данных YouTrack (`src/models/youtrackTypes.ts`)
 
 **Созданы интерфейсы:**
+
 - `YouTrackIssue` - структура задачи из YouTrack API
 - `YouTrackCustomField` - кастомные поля задачи
 - `YouTrackIssuesResponse` - ответ API со списком задач
@@ -60,6 +61,7 @@ private handleError(error: unknown): void
 ### 3. Настройки VS Code (`package.json`)
 
 **Добавлены настройки:**
+
 - `taskflow.youtrack.baseUrl` - URL сервера YouTrack
 - `taskflow.youtrack.token` - токен авторизации
 - `taskflow.youtrack.projectId` - ID проекта (опционально)
@@ -68,6 +70,7 @@ private handleError(error: unknown): void
 ### 4. Команда импорта (`extension.ts`)
 
 **Обновлена команда `taskflow.importTasksFromApi`:**
+
 - Автоопределение источника (YouTrack или Generic API)
 - Проверка подключения перед импортом
 - Обновление существующих задач
@@ -89,17 +92,20 @@ private handleError(error: unknown): void
 ### Шаг 2: Импорт задач
 
 **Способ 1: Через Command Palette**
+
 1. `Ctrl+Shift+P`
 2. Введите: `TaskFlow: Импортировать задачи из API`
 3. Выберите "Импортировать задачи"
 
 **Способ 2: Через контекстное меню**
+
 - Правый клик в панели "Задачи"
 - Выберите "Импортировать задачи из API"
 
 ### Шаг 3: Проверка подключения
 
 Перед импортом можно проверить подключение:
+
 1. Выполните команду импорта
 2. Выберите "Проверить подключение"
 3. Получите результат проверки
@@ -108,56 +114,61 @@ private handleError(error: unknown): void
 
 ### Из YouTrack в Task
 
-| YouTrack | TaskFlow | Описание |
-|----------|----------|----------|
-| `idReadable` | `id` (prefixed) | `youtrack-PROJECT-123` |
-| `summary` | `title` | `[PROJECT-123] Название задачи` |
-| `description` | `description` | Описание задачи |
-| `customFields[State]` | `status` | Маппинг статуса |
-| `customFields[Priority]` | `priority` | Маппинг приоритета |
-| `customFields[Type]` | `category` | Тип задачи |
-| `idReadable` | `tag` | Используется как тег |
-| `created` | `createdAt` | Дата создания |
-| `updated` | `updatedAt` | Дата обновления |
-| `reporter` | `assignee` | Автор задачи |
+| YouTrack                 | TaskFlow        | Описание                        |
+| ------------------------ | --------------- | ------------------------------- |
+| `idReadable`             | `id` (prefixed) | `youtrack-PROJECT-123`          |
+| `summary`                | `title`         | `[PROJECT-123] Название задачи` |
+| `description`            | `description`   | Описание задачи                 |
+| `customFields[State]`    | `status`        | Маппинг статуса                 |
+| `customFields[Priority]` | `priority`      | Маппинг приоритета              |
+| `customFields[Type]`     | `category`      | Тип задачи                      |
+| `idReadable`             | `tag`           | Используется как тег            |
+| `created`                | `createdAt`     | Дата создания                   |
+| `updated`                | `updatedAt`     | Дата обновления                 |
+| `reporter`               | `assignee`      | Автор задачи                    |
 
 ### Маппинг статусов
 
-| YouTrack State | TaskFlow Status |
-|----------------|-----------------|
-| "В работе", "In Progress" | `InProgress` |
-| "Завершен", "Closed", "Done", "Fixed" | `Completed` |
-| Остальные | `Pending` |
+| YouTrack State                        | TaskFlow Status |
+| ------------------------------------- | --------------- |
+| "В работе", "In Progress"             | `InProgress`    |
+| "Завершен", "Closed", "Done", "Fixed" | `Completed`     |
+| Остальные                             | `Pending`       |
 
 ### Маппинг приоритетов
 
-| YouTrack Priority | TaskFlow Priority |
-|-------------------|-------------------|
-| "Критический", "Высокий", "Critical", "High" | `High` |
-| "Низкий", "Minor", "Low" | `Low` |
-| Остальные | `Medium` |
+| YouTrack Priority                            | TaskFlow Priority |
+| -------------------------------------------- | ----------------- |
+| "Критический", "Высокий", "Critical", "High" | `High`            |
+| "Низкий", "Minor", "Low"                     | `Low`             |
+| Остальные                                    | `Medium`          |
 
 ## Обработка ошибок
 
 ### Типы ошибок и решения:
 
 #### 1. Ошибка 401 (Unauthorized)
+
 **Причина:** Неверный токен авторизации  
 **Решение:** Проверьте токен в настройках, создайте новый в YouTrack
 
 #### 2. Ошибка 403 (Forbidden)
+
 **Причина:** Недостаточно прав доступа  
 **Решение:** Убедитесь, что токен имеет права на чтение задач
 
 #### 3. Ошибка 404 (Not Found)
+
 **Причина:** Неверный URL или API endpoint  
 **Решение:** Проверьте корректность Base URL
 
 #### 4. Network Error
+
 **Причина:** Нет подключения к интернету или сервер недоступен  
 **Решение:** Проверьте подключение и доступность сервера
 
 #### 5. Timeout Error
+
 **Причина:** Сервер не отвечает (таймаут 30 секунд)  
 **Решение:** Проверьте производительность сервера, уменьшите количество задач
 
@@ -249,26 +260,31 @@ private handleError(error: unknown): void
 ### Последовательность импорта
 
 1. **Инициализация**
+
    - Загрузка конфигурации из VS Code
    - Валидация параметров
    - Создание Axios instance
 
 2. **Построение запроса**
+
    - Формирование query string
    - Определение полей для запроса
    - Установка лимитов
 
 3. **API запрос**
+
    - GET /api/issues
    - Обработка ответа
    - Обработка ошибок
 
 4. **Маппинг данных**
+
    - Преобразование каждой задачи
    - Маппинг статусов и приоритетов
    - Извлечение кастомных полей
 
 5. **Сохранение**
+
    - Проверка существующих задач
    - Добавление новых
    - Обновление существующих
@@ -316,9 +332,11 @@ private handleError(error: unknown): void
 ## Ограничения
 
 1. **Максимум задач за запрос**: 100
+
    - Для больших проектов потребуется пагинация (будет добавлено в будущем)
 
 2. **Поддерживаемые поля**:
+
    - State (статус)
    - Priority (приоритет)
    - Type (категория)
@@ -364,6 +382,7 @@ const isConnected = await integration.testConnection();
 ### Отладка
 
 Включите Developer Tools в VS Code:
+
 - `Help` → `Toggle Developer Tools`
 - Вкладка `Console`
 - Смотрите логи с префиксом "YouTrack"
@@ -373,18 +392,22 @@ const isConnected = await integration.testConnection();
 ### Запланировано
 
 1. **Пагинация**
+
    - Импорт более 100 задач
    - Автоматическая подгрузка следующей страницы
 
 2. **Двусторонняя синхронизация**
+
    - Обновление задач в YouTrack из TaskFlow
    - Синхронизация статусов
 
 3. **Инкрементальная синхронизация**
+
    - Импорт только изменённых задач
    - Использование поля `updated` для фильтрации
 
 4. **Маппинг дополнительных полей**
+
    - Assignee (исполнитель)
    - Due Date (срок выполнения)
    - Subtasks (подзадачи)
@@ -427,11 +450,11 @@ const initialized = await integration.initialize();
 
 if (initialized) {
   const tasks = await integration.importIssues();
-  
+
   for (const task of tasks) {
     taskManager.addTask(task);
   }
-  
+
   console.log(`Imported ${tasks.length} tasks`);
 }
 ```

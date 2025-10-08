@@ -985,10 +985,7 @@ ${task.tag ? `- Тег: ${task.tag}` : ""}
 
           return fullResponse.trim();
         } catch (error) {
-          console.error(
-            "Ошибка при генерации результата через AI:",
-            error
-          );
+          console.error("Ошибка при генерации результата через AI:", error);
           return null;
         }
       }
