@@ -34,10 +34,11 @@ export class QueueTreeProvider
   /**
    * Обработка начала перетаскивания (из очереди)
    */
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   public async handleDrag(
     source: readonly TaskTreeItem[],
     dataTransfer: vscode.DataTransfer,
-    token: vscode.CancellationToken
+    _token: vscode.CancellationToken
   ): Promise<void> {
     const taskIds = source.map((item) => item.task.id);
     dataTransfer.set(
@@ -45,14 +46,16 @@ export class QueueTreeProvider
       new vscode.DataTransferItem(taskIds)
     );
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   /**
    * Обработка drop - добавление задачи в очередь или изменение порядка
    */
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   public async handleDrop(
     target: TaskTreeItem | undefined,
     dataTransfer: vscode.DataTransfer,
-    token: vscode.CancellationToken
+    _token: vscode.CancellationToken
   ): Promise<void> {
     // Пробуем получить данные из разных источников
     const transferItem =
@@ -63,7 +66,32 @@ export class QueueTreeProvider
       return;
     }
 
-    const taskIds = transferItem.value as string[];
+    let taskIds: string[];
+    const value = transferItem.value;
+
+    // DEBUG: Посмотрим, что именно приходит
+    console.log("QueueTreeProvider.handleDrop - transferItem.value:", value);
+    console.log("QueueTreeProvider.handleDrop - value type:", typeof value);
+    console.log(
+      "QueueTreeProvider.handleDrop - is Array:",
+      Array.isArray(value)
+    );
+
+    // Обрабатываем разные форматы данных
+    if (Array.isArray(value)) {
+      taskIds = value;
+    } else if (typeof value === "string") {
+      // Если пришла строка, пробуем распарсить как JSON
+      try {
+        const parsed = JSON.parse(value);
+        taskIds = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        // Если не JSON, считаем это одним ID
+        taskIds = [value];
+      }
+    } else {
+      taskIds = [String(value)];
+    }
 
     if (!taskIds || taskIds.length === 0) {
       return;
@@ -138,6 +166,7 @@ export class QueueTreeProvider
       }
     }
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   /**
    * Обновление дерева

@@ -191,12 +191,13 @@ export class TaskTreeProvider
   }
 
   /**
-   * Обработка начала перетаскивания
+   * Обработка перетаскивания из панели задач
    */
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   public async handleDrag(
     source: readonly (TaskTreeItem | CategoryTreeItem)[],
     dataTransfer: vscode.DataTransfer,
-    token: vscode.CancellationToken
+    _token: vscode.CancellationToken
   ): Promise<void> {
     // Разрешаем перетаскивать только задачи, не категории
     const tasks = source.filter(
@@ -212,17 +213,20 @@ export class TaskTreeProvider
       );
     }
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   /**
    * Обработка drop (не используется для перетаскивания между панелями)
    */
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   public async handleDrop(
-    target: TaskTreeItem | CategoryTreeItem | undefined,
-    dataTransfer: vscode.DataTransfer,
-    token: vscode.CancellationToken
+    _target: TaskTreeItem | CategoryTreeItem | undefined,
+    _dataTransfer: vscode.DataTransfer,
+    _token: vscode.CancellationToken
   ): Promise<void> {
     // Drop в той же панели не нужен, но метод обязателен
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   /**
    * Обновление дерева
