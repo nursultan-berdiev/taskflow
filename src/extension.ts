@@ -7,6 +7,7 @@ import { CompletedTasksTreeProvider } from "./views/completedTasksTreeProvider";
 import { InstructionTreeProvider } from "./views/instructionTreeProvider";
 import { TaskEditorPanel } from "./views/taskEditorPanel";
 import { CopilotIntegration } from "./integrations/copilotIntegration";
+import { YouTrackIntegration } from "./integrations/youtrackIntegration";
 import { Task, Priority, TaskStatus, ProgressStats } from "./models/task";
 import { Instruction } from "./models/instruction";
 import { ApiTaskImporter } from "./services/apiTaskImporter";
@@ -448,11 +449,115 @@ function registerCommands(
     )
   );
 
-  // Импортировать задачи из API
+  // Импортировать задачи из API (YouTrack или Generic API)
   context.subscriptions.push(
     vscode.commands.registerCommand("taskflow.importTasksFromApi", async () => {
-      const apiTaskImporter = new ApiTaskImporter(taskManager);
-      await apiTaskImporter.importTasksFromApi();
+      // Проверяем, что настроено: YouTrack или Generic API
+      const youtrackUrl = vscode.workspace
+        .getConfiguration("taskflow.youtrack")
+        .get<string>("baseUrl");
+      const genericApiUrl = vscode.workspace
+        .getConfiguration("taskflow")
+        .get<string>("apiTasksUrl");
+
+      // Если настроен YouTrack - используем его
+      if (youtrackUrl && youtrackUrl.trim() !== "") {
+        const youtrackIntegration = new YouTrackIntegration();
+        const initialized = await youtrackIntegration.initialize();
+
+        if (!initialized) {
+          return;
+        }
+
+        // Предлагаем проверить подключение
+        const testConnection = await vscode.window.showQuickPick(
+          ["Импортировать задачи", "Проверить подключение"],
+          {
+            placeHolder: "Выберите действие",
+            ignoreFocusOut: true,
+          }
+        );
+
+        if (testConnection === "Проверить подключение") {
+          await youtrackIntegration.testConnection();
+          return;
+        }
+
+        if (testConnection === "Импортировать задачи") {
+          try {
+            const tasks = await youtrackIntegration.importIssues();
+
+            if (tasks.length === 0) {
+              vscode.window.showInformationMessage(
+                "Не найдено задач для импорта из YouTrack"
+              );
+              return;
+            }
+
+            // Добавляем задачи через TaskManager
+            let importedCount = 0;
+            let skippedCount = 0;
+
+            for (const task of tasks) {
+              const existingTask = taskManager.getTaskById(task.id);
+
+              if (existingTask) {
+                // Задача уже существует - обновляем её
+                taskManager.updateTask(task.id, task);
+                skippedCount++;
+              } else {
+                // Новая задача - добавляем
+                taskManager.addTask(task);
+                importedCount++;
+              }
+            }
+
+            vscode.window.showInformationMessage(
+              `✅ Импорт завершён!\n` +
+                `Импортировано новых: ${importedCount}\n` +
+                `Обновлено существующих: ${skippedCount}`
+            );
+          } catch (error) {
+            vscode.window.showErrorMessage(
+              `Ошибка при импорте из YouTrack: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+          }
+        }
+      } else if (genericApiUrl && genericApiUrl.trim() !== "") {
+        // Используем Generic API
+        const apiTaskImporter = new ApiTaskImporter(taskManager);
+        await apiTaskImporter.importTasksFromApi();
+      } else {
+        // Ничего не настроено - показываем инструкцию
+        const choice = await vscode.window.showWarningMessage(
+          "Не настроен ни YouTrack, ни Generic API. Выберите, что хотите настроить:",
+          "Настроить YouTrack",
+          "Настроить Generic API",
+          "Отмена"
+        );
+
+        if (choice === "Настроить YouTrack") {
+          vscode.window.showInformationMessage(
+            "Откройте настройки (Ctrl+,) и найдите 'TaskFlow: YouTrack'. " +
+              "Укажите URL сервера и токен доступа."
+          );
+          await vscode.commands.executeCommand(
+            "workbench.action.openSettings",
+            "taskflow.youtrack"
+          );
+        } else if (choice === "Настроить Generic API") {
+          vscode.window.showInformationMessage(
+            "Откройте настройки (Ctrl+,) и найдите 'TaskFlow: Api Tasks Url'. " +
+              "Укажите URL для получения задач."
+          );
+          await vscode.commands.executeCommand(
+            "workbench.action.openSettings",
+            "taskflow.apiTasksUrl"
+          );
+        }
+      }
     })
   );
 

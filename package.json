@@ -2,7 +2,7 @@
   "name": "taskflow",
   "displayName": "TaskFlow - AI-Powered Task Management",
   "description": "Управление задачами с гибридным хранением (JSON + Markdown) и интеграцией GitHub Copilot для генерации кода с кастомными инструкциями",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "publisher": "nursultanberdiev",
   "icon": "icon.png",
   "repository": {
@@ -420,6 +420,30 @@
           "type": "string",
           "default": "",
           "description": "URL для импорта задач через API (HTTP GET). AI агент автоматически создаст задачи из полученных данных."
+        },
+        "taskflow.youtrack.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Базовый URL вашего сервера YouTrack (например: https://youtrack.company.com)",
+          "order": 100
+        },
+        "taskflow.youtrack.token": {
+          "type": "string",
+          "default": "",
+          "description": "Токен для доступа к YouTrack API (создайте в настройках профиля YouTrack)",
+          "order": 101
+        },
+        "taskflow.youtrack.projectId": {
+          "type": "string",
+          "default": "",
+          "description": "ID проекта в YouTrack для фильтрации задач (опционально)",
+          "order": 102
+        },
+        "taskflow.youtrack.query": {
+          "type": "string",
+          "default": "",
+          "description": "Дополнительный запрос для фильтрации задач YouTrack (опционально, например: 'State: Open')",
+          "order": 103
         }
       }
     }
@@ -447,6 +471,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "axios": "^1.12.2",
     "easymde": "^2.20.0",
     "marked": "^7.0.4",
     "uuid": "^9.0.0"
